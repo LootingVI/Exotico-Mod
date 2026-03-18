@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+build/
+bin/
+out/
+
+# Fabric Loom
+run/
+.gradle/loom-cache/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.bak
+*.tmp
+api-server/
+
+# Project specific temporary files
+build_verify.txt
+handledscreen.txt
+handledscreen_s.txt
+pipeline.txt
+renderlayer.txt
+screen.txt
+parent.txt
+click.txt
+key_input.txt
+char_input.txt
+temp.txt
+test.java

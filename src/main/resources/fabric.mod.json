@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "exotico",
+  "version": "${version}",
+  "name": "Exotico",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/exotico/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "de.flori.exotico.client.ExoticoDataGenerator"
+    ],
+    "client": [
+      "de.flori.exotico.client.ExoticoClient"
+    ],
+    "main": [
+      "de.flori.exotico.Exotico"
+    ]
+  },
+  "mixins": [
+    "exotico.mixins.json",
+    {
+      "config": "exotico.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
