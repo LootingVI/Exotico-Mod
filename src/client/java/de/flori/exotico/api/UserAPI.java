@@ -30,9 +30,7 @@ public class UserAPI {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-
     public static final Map<String, String> userRanks = new HashMap<>();
-
 
     private static final Map<String, Identifier> capeTextures = new ConcurrentHashMap<>();
 
@@ -135,9 +133,6 @@ public class UserAPI {
                 }).exceptionally(e -> null);
     }
 
-
-
-
     public static Identifier getCapeTexture(String name) {
         String key = name.toLowerCase();
         if (capeTextures.containsKey(key)) {
@@ -196,7 +191,6 @@ public class UserAPI {
                 }).exceptionally(e -> null);
     }
 
-
     public static void uploadCape(Path pngPath) {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null)
@@ -219,7 +213,7 @@ public class UserAPI {
                         .uri(URI.create(API_BASE + "/cape/upload"))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                        .timeout(Duration.ofSeconds(10))
+                        .timeout(Duration.ofSeconds(30))
                         .build();
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -247,8 +241,6 @@ public class UserAPI {
             }
         });
     }
-
-
 
     public static String getRankFormat(String name) {
         String rank;
@@ -345,7 +337,7 @@ public class UserAPI {
                         .uri(URI.create(API_BASE + "/screenshot/upload"))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                        .timeout(Duration.ofSeconds(15))
+                        .timeout(Duration.ofSeconds(60))
                         .build();
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

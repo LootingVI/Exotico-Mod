@@ -3,8 +3,10 @@
   "id": "exotico",
   "version": "${version}",
   "name": "Exotico",
-  "description": "",
-  "authors": [],
+  "description": "The ultimate Hypixel SkyBlock exotic armor scanner and highlighter. Detect rare colors, dyes, and glitched items in real-time.",
+  "authors": [
+    "Flori"
+  ],
   "contact": {},
   "license": "All-Rights-Reserved",
   "icon": "assets/exotico/icon.png",

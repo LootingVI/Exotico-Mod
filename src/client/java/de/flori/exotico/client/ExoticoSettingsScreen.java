@@ -34,12 +34,10 @@ public class ExoticoSettingsScreen extends Screen {
 
     private final Screen parent;
 
-
     private static final int PANEL_W = 500;
     private static final int PANEL_H = 340;
     private static final int HEADER_H = 32;
     private static final int TAB_H = 26;
-
 
     private static final int COL_BG = 0xFF0E0E18;
     private static final int COL_PANEL = 0xFF12121F;
@@ -57,7 +55,6 @@ public class ExoticoSettingsScreen extends Screen {
     private static final int COL_INPUT_BG = 0xFF0C0C1A;
     private static final int COL_INPUT_ACT = 0xFF181830;
 
-
     private int px, py;
     private int currentTab = 0;
     private int activeInput = -1;
@@ -67,7 +64,6 @@ public class ExoticoSettingsScreen extends Screen {
     private double scrollOffset = 0;
     private double targetScroll = 0;
 
-
     private final Map<Path, Identifier> screenshotTextures = new HashMap<>();
     private final Set<Path> loadingThumbnails = new HashSet<>();
     private List<Path> cachedShots = null;
@@ -76,6 +72,9 @@ public class ExoticoSettingsScreen extends Screen {
     private static final int SHOTS_PER_PAGE = 6;
     private static final int ITEMS_PER_PAGE = 9;
 
+    // FIX: Track which screenshot is currently being shared (index), not just a boolean.
+    // This allows per-card state and prevents the global lock bug.
+    private final Set<Integer> sharingIndices = new HashSet<>();
 
     private final String[] inputLabels = {
             "API Key", "Discord Webhook", "Cache Interval (ms)",
@@ -106,19 +105,16 @@ public class ExoticoSettingsScreen extends Screen {
             "§7Minimum ms before the same player gets messaged again"
     };
 
-
     private final String[] toggleLabels = {
             "Auto Scan", "Sounds", "Tooltips", "Player Highlight",
             "HUD Overlay", "Auto-Message", "Inv. Highlight", "Wavy Capes"
     };
     private final boolean[] toggles = new boolean[8];
 
-
     private volatile String capePath = "";
-    private String capeMessage = "";
-    private int capeMsgColor = COL_TEXT_DIM;
+    private String statusMsg = "";
+    private int statusMsgColor = COL_TEXT_DIM;
     private final AtomicBoolean capeUploading = new AtomicBoolean(false);
-
 
     public ExoticoSettingsScreen(Screen parent) {
         super(Text.literal("Exotico Settings"));
@@ -131,7 +127,6 @@ public class ExoticoSettingsScreen extends Screen {
         py = (height - PANEL_H) / 2;
         loadConfig();
     }
-
 
     private void loadConfig() {
         ExoticoConfig c = ExoticoConfig.getInstance();
@@ -188,7 +183,6 @@ public class ExoticoSettingsScreen extends Screen {
         return s != null ? s : "";
     }
 
-
     private float maxScroll() {
         return switch (currentTab) {
             case 0 -> 220f;
@@ -206,11 +200,9 @@ public class ExoticoSettingsScreen extends Screen {
         return true;
     }
 
-
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         tickCounter++;
-
 
         float max = maxScroll();
         if (targetScroll > max)
@@ -219,26 +211,21 @@ public class ExoticoSettingsScreen extends Screen {
             targetScroll = 0;
         scrollOffset += (targetScroll - scrollOffset) * 0.25f;
 
-
         ctx.fill(0, 0, width, height, 0xBB080814);
-
 
         fillRect(ctx, px, py, PANEL_W, PANEL_H, COL_PANEL);
         drawBorder(ctx, px, py, PANEL_W, PANEL_H, COL_BORDER);
-
 
         fillRect(ctx, px, py, PANEL_W, HEADER_H, COL_BG);
 
         fillRect(ctx, px, py, 3, HEADER_H, COL_GOLD);
         ctx.drawTextWithShadow(textRenderer, "✦ EXOTICO  Settings", px + 10, py + 12, COL_GOLD);
 
-
         int clX = px + PANEL_W - 26, clY = py + 7;
         boolean clHov = hover(mouseX, mouseY, clX, clY, 18, 18);
         fillRect(ctx, clX, clY, 18, 18, clHov ? 0x88FF3344 : 0x44FF3344);
         drawBorder(ctx, clX, clY, 18, 18, clHov ? COL_RED : 0xFF993333);
         ctx.drawCenteredTextWithShadow(textRenderer, "×", clX + 9, clY + 5, COL_TEXT);
-
 
         String[] tabs = { "General", "Notify", "Cape", "Collection", "Screenshots", "About" };
         int tabW = PANEL_W / tabs.length;
@@ -257,7 +244,6 @@ public class ExoticoSettingsScreen extends Screen {
 
         fillRect(ctx, px, tabY + TAB_H, PANEL_W, 1, COL_BORDER);
 
-
         int contentTop = tabY + TAB_H + 1;
         int bottomBarH = 36;
         int contentBot = py + PANEL_H - bottomBarH;
@@ -275,13 +261,11 @@ public class ExoticoSettingsScreen extends Screen {
 
         ctx.disableScissor();
 
-
         fillRect(ctx, px, contentBot, PANEL_W, bottomBarH, COL_BG);
         fillRect(ctx, px, contentBot, PANEL_W, 1, COL_BORDER);
         drawButton(ctx, mouseX, mouseY, px + 12, contentBot + 8, 120, 20, "Save & Close", COL_GREEN);
         drawButton(ctx, mouseX, mouseY, px + PANEL_W - 132, contentBot + 8, 120, 20, "Cancel", COL_RED);
     }
-
 
     private void renderGeneral(DrawContext ctx, int mx, int my, int baseY) {
         int pad = 12;
@@ -351,8 +335,8 @@ public class ExoticoSettingsScreen extends Screen {
         drawButton(ctx, mx, my, px + pad + 118, btnY, 140, 22,
                 capeUploading.get() ? "Uploading…" : "Upload Cape", COL_PURPLE);
 
-        if (!capeMessage.isEmpty())
-            ctx.drawTextWithShadow(textRenderer, capeMessage, px + pad, btnY + 32, capeMsgColor);
+        if (!statusMsg.isEmpty())
+            ctx.drawTextWithShadow(textRenderer, statusMsg, px + pad, btnY + 32, statusMsgColor);
     }
 
     private void renderCollection(DrawContext ctx, int mx, int my, int baseY) {
@@ -381,7 +365,6 @@ public class ExoticoSettingsScreen extends Screen {
             boolean hv = hover(mx, my, cx, cy, cw, ch);
             fillRect(ctx, cx, cy, cw, ch, hv ? COL_HOVER : COL_SURFACE);
             drawBorder(ctx, cx, cy, cw, ch, hv ? COL_GOLD : COL_BORDER);
-
 
             Item base = Items.LEATHER_CHESTPLATE;
             String id = item.item_id != null ? item.item_id.toUpperCase() : "";
@@ -438,7 +421,6 @@ public class ExoticoSettingsScreen extends Screen {
             fillRect(ctx, cx, cy, cardW, cardH, hov ? COL_HOVER : COL_SURFACE);
             drawBorder(ctx, cx, cy, cardW, cardH, hov ? COL_GOLD : COL_BORDER);
 
-
             Identifier texId = screenshotTextures.get(path);
             if (texId != null) {
                 ctx.drawTexture(RenderPipelines.GUI_TEXTURED, texId, cx + 4, cy + 4, 0f, 0f, 52, 32, 52, 32);
@@ -448,28 +430,35 @@ public class ExoticoSettingsScreen extends Screen {
                 loadThumbnail(path);
             }
 
-
             String name = path.getFileName().toString();
             if (name.length() > 20)
                 name = name.substring(0, 17) + "...";
             ctx.drawTextWithShadow(textRenderer, name, cx + 62, cy + 6, COL_TEXT);
 
-
             String date = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new Date(path.toFile().lastModified()));
             ctx.drawTextWithShadow(textRenderer, "§7" + date, cx + 62, cy + 18, COL_TEXT_DIM);
 
-
+            // FIX: Share button — use absolute index i so sharing state is per-screenshot
             int sx = cx + cardW - 56, sy = cy + cardH - 20;
-            boolean shov = hover(mx, my, sx, sy, 52, 16);
-            fillRect(ctx, sx, sy, 52, 16, shov ? COL_ACCENT : COL_SURFACE);
-            drawBorder(ctx, sx, sy, 52, 16, shov ? COL_GOLD : COL_BORDER);
-            ctx.drawCenteredTextWithShadow(textRenderer, "Share", sx + 26, sy + 4, shov ? COL_TEXT : COL_TEXT_DIM);
+            boolean sharing = sharingIndices.contains(i);
+            boolean shov = !sharing && hover(mx, my, sx, sy, 52, 16);
+            fillRect(ctx, sx, sy, 52, 16, sharing ? COL_SURFACE : (shov ? COL_ACCENT : COL_SURFACE));
+            drawBorder(ctx, sx, sy, 52, 16, sharing ? COL_TEXT_DIM : (shov ? COL_GOLD : COL_BORDER));
+            ctx.drawCenteredTextWithShadow(textRenderer,
+                    sharing ? "§7..." : "Share",
+                    sx + 26, sy + 4,
+                    sharing ? COL_TEXT_DIM : (shov ? COL_TEXT : COL_TEXT_DIM));
         }
 
         int totalPages = Math.max(1, (int) Math.ceil((double) shots.size() / SHOTS_PER_PAGE));
         screenshotPage = Math.clamp(screenshotPage, 0, totalPages - 1);
         if (totalPages > 1)
             drawPagination(ctx, mx, my, screenshotPage, totalPages, py + PANEL_H - 50);
+
+        if (!statusMsg.isEmpty()) {
+            ctx.drawCenteredTextWithShadow(textRenderer, statusMsg, px + PANEL_W / 2, py + PANEL_H - 25,
+                    statusMsgColor);
+        }
     }
 
     private void renderAbout(DrawContext ctx, int baseY) {
@@ -478,7 +467,6 @@ public class ExoticoSettingsScreen extends Screen {
                 baseY + 40, COL_TEXT);
         ctx.drawCenteredTextWithShadow(textRenderer, "§7API: api.flori.tv", px + PANEL_W / 2, baseY + 60, COL_TEXT_DIM);
     }
-
 
     private void sectionLabel(DrawContext ctx, String label, int x, int y) {
         ctx.drawTextWithShadow(textRenderer, "§e" + label, x, y, COL_GOLD);
@@ -495,7 +483,6 @@ public class ExoticoSettingsScreen extends Screen {
         boolean empty = raw.isEmpty();
         String disp;
         if (empty && !active) {
-
             disp = inputPlaceholder[idx];
             ctx.drawTextWithShadow(textRenderer, "§8" + disp, x + 6, y + 7, 0xFF505068);
         } else {
@@ -507,12 +494,10 @@ public class ExoticoSettingsScreen extends Screen {
             ctx.drawTextWithShadow(textRenderer, disp, x + 6, y + 7, active ? COL_TEXT : COL_TEXT_DIM);
         }
 
-
         if (active) {
             String hint = "§8Ctrl+C copy · Ctrl+V paste · Ctrl+A clear";
             ctx.drawTextWithShadow(textRenderer, hint, x + 6, y + 24, 0xFF444460);
         } else if (!empty) {
-
             ctx.drawTextWithShadow(textRenderer, inputHints[idx], x + 2, y + 24, 0xFF444460);
         }
     }
@@ -523,35 +508,25 @@ public class ExoticoSettingsScreen extends Screen {
         int h = 30;
         boolean hov = hover(mx, my, x, y, w, h);
 
-
         fillRect(ctx, x, y, w, h, hov ? COL_HOVER : COL_SURFACE);
-
         fillRect(ctx, x, y, 2, h, val ? COL_GREEN : COL_BORDER);
-
         fillRect(ctx, x, y + h - 1, w, 1, val ? COL_GREEN : (hov ? COL_GOLD : COL_BORDER));
-
         drawBorder(ctx, x, y, w, h, val ? 0xFF2FAE6E : (hov ? COL_GOLD : COL_BORDER));
-
-
         ctx.drawTextWithShadow(textRenderer, toggleLabels[idx], x + 10, y + 11, COL_TEXT);
-
 
         int trackW = 34, trackH = 14;
         int tx = x + w - trackW - 8;
         int ty = y + (h - trackH) / 2;
 
-
         int trackColor = val ? 0xFF1E7A4E : 0xFF1A1A30;
         fillRect(ctx, tx, ty, trackW, trackH, trackColor);
         drawBorder(ctx, tx, ty, trackW, trackH, val ? COL_GREEN : COL_BORDER);
-
 
         int knobW = 12, knobH = 10;
         int kx = val ? tx + trackW - knobW - 2 : tx + 2;
         int ky = ty + 2;
         int knobColor = val ? COL_GREEN : 0xFF666680;
         fillRect(ctx, kx, ky, knobW, knobH, knobColor);
-
         fillRect(ctx, kx + 1, ky, knobW - 2, 1, val ? 0xFF88FFB8 : 0xFF8888AA);
     }
 
@@ -569,7 +544,6 @@ public class ExoticoSettingsScreen extends Screen {
         drawButton(ctx, mx, my, bx + 44, y, 22, 18, ">", COL_GOLD);
     }
 
-
     private void fillRect(DrawContext ctx, int x, int y, int w, int h, int col) {
         ctx.fill(x, y, x + w, y + h, col);
     }
@@ -585,7 +559,6 @@ public class ExoticoSettingsScreen extends Screen {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
-
     @Override
     public boolean mouseClicked(Click click, boolean bl) {
         if (click.button() != 0)
@@ -597,12 +570,10 @@ public class ExoticoSettingsScreen extends Screen {
         int contentTop = tabY + TAB_H + 1;
         int bottomY = py + PANEL_H - 36;
 
-
         if (hover(mx, my, px + PANEL_W - 26, py + 7, 18, 18)) {
             close();
             return true;
         }
-
 
         if (my >= tabY && my < tabY + TAB_H) {
             int tabW = PANEL_W / 6;
@@ -618,7 +589,6 @@ public class ExoticoSettingsScreen extends Screen {
             }
         }
 
-
         if (my >= bottomY && my < bottomY + 36) {
             if (hover(mx, my, px + 12, bottomY + 8, 120, 20)) {
                 saveConfig();
@@ -631,6 +601,12 @@ public class ExoticoSettingsScreen extends Screen {
             }
         }
 
+        // FIX: Only handle content clicks when the click is actually inside the content area.
+        // Previously, clicks below/outside the scissor region still triggered share buttons.
+        int contentBot = py + PANEL_H - 36;
+        if (my < contentTop || my >= contentBot) {
+            return false;
+        }
 
         int scrolledY = contentTop - (int) scrollOffset;
         boolean handled = switch (currentTab) {
@@ -753,6 +729,8 @@ public class ExoticoSettingsScreen extends Screen {
         List<Path> shots = getScreenshots();
         int total = Math.max(1, (int) Math.ceil((double) shots.size() / SHOTS_PER_PAGE));
         int bx = px + PANEL_W / 2, by = py + PANEL_H - 50;
+
+        // Pagination buttons
         if (hover(mx, my, bx - 66, by, 22, 18)) {
             if (screenshotPage > 0)
                 screenshotPage--;
@@ -764,25 +742,53 @@ public class ExoticoSettingsScreen extends Screen {
             return true;
         }
 
-
         int pad = 12, cardW = (PANEL_W - pad * 2 - 10) / 2, cardH = 60;
         int start = screenshotPage * SHOTS_PER_PAGE;
         int end = Math.min(start + SHOTS_PER_PAGE, shots.size());
+
         for (int i = start; i < end; i++) {
             int local = i - start;
             int cx = px + pad + (local % 2) * (cardW + 10);
             int cy = baseY + pad + 20 + (local / 2) * (cardH + 6);
             int sx = cx + cardW - 56, sy = cy + cardH - 20;
+
             if (hover(mx, my, sx, sy, 52, 16)) {
+                // FIX: Use per-screenshot index instead of a global boolean lock.
+                // This allows each card to independently show its sharing state,
+                // and prevents a stuck global flag from blocking all future clicks.
+                if (sharingIndices.contains(i))
+                    return true; // already uploading this one
+
                 Path p = shots.get(i);
-                UserAPI.shareScreenshot(p).thenAccept(url -> {
-                    if (url != null)
-                        MinecraftClient.getInstance().execute(() -> {
-                            MinecraftClient.getInstance().keyboard.setClipboard(url);
-                            capeMessage = "§a✔ Link in Zwischenablage kopiert!";
-                            capeMsgColor = COL_GREEN;
+                final int shareIdx = i;
+
+                statusMsg = "§eSharing...";
+                statusMsgColor = COL_GOLD;
+                sharingIndices.add(shareIdx);
+
+                // FIX: Wrap in exceptionally() so the index is ALWAYS removed,
+                // even if UserAPI.shareScreenshot() throws or returns a failed future.
+                UserAPI.shareScreenshot(p)
+                        .thenAccept(url -> MinecraftClient.getInstance().execute(() -> {
+                            sharingIndices.remove(shareIdx);
+                            if (url != null && !url.isBlank()) {
+                                MinecraftClient.getInstance().keyboard.setClipboard(url);
+                                statusMsg = "§a✔ Shared! Link copied.";
+                                statusMsgColor = COL_GREEN;
+                            } else {
+                                statusMsg = "§cFailed to share screenshot.";
+                                statusMsgColor = COL_RED;
+                            }
+                        }))
+                        .exceptionally(ex -> {
+                            MinecraftClient.getInstance().execute(() -> {
+                                sharingIndices.remove(shareIdx);
+                                statusMsg = "§cShare failed.";
+                                statusMsgColor = COL_RED;
+                            });
+                            return null;
                         });
-                });
+
                 return true;
             }
         }
@@ -801,17 +807,14 @@ public class ExoticoSettingsScreen extends Screen {
         }
 
         if (activeInput >= 0) {
-
             if (ctrl) {
                 if (key == GLFW.GLFW_KEY_C) {
-
                     String val = inputValues[activeInput];
                     if (!val.isEmpty())
                         MinecraftClient.getInstance().keyboard.setClipboard(val);
                     return true;
                 }
                 if (key == GLFW.GLFW_KEY_V) {
-
                     String clip = MinecraftClient.getInstance().keyboard.getClipboard();
                     if (clip != null && !clip.isEmpty()) {
                         String cur = inputValues[activeInput];
@@ -824,7 +827,6 @@ public class ExoticoSettingsScreen extends Screen {
                     return true;
                 }
                 if (key == GLFW.GLFW_KEY_A) {
-
                     inputValues[activeInput] = "";
                     return true;
                 }
@@ -857,7 +859,6 @@ public class ExoticoSettingsScreen extends Screen {
             inputValues[activeInput] = cur + (char) input.codepoint();
         return true;
     }
-
 
     private List<Path> getScreenshots() {
         long now = System.currentTimeMillis();
@@ -900,7 +901,6 @@ public class ExoticoSettingsScreen extends Screen {
         });
     }
 
-
     private void openFileChooser() {
         new Thread(() -> {
             String chosen = TinyFileDialogs.tinyfd_openFileDialog("Select Cape PNG", null, null, "PNG Files (*.png)",
@@ -913,27 +913,27 @@ public class ExoticoSettingsScreen extends Screen {
     private void startCapeUpload() {
         if (capePath.isEmpty() || capeUploading.get())
             return;
+        statusMsg = "§eUploading…";
+        statusMsgColor = COL_GOLD;
         capeUploading.set(true);
-        capeMessage = "§eUploading…";
-        capeMsgColor = COL_GOLD;
-        new Thread(() -> {
+
+        CompletableFuture.runAsync(() -> {
             try {
                 UserAPI.uploadCape(Paths.get(capePath));
                 MinecraftClient.getInstance().execute(() -> {
-                    capeMessage = "§aCape uploaded!";
-                    capeMsgColor = COL_GREEN;
                     capeUploading.set(false);
+                    statusMsg = "§a✔ Cape uploaded successfully!";
+                    statusMsgColor = COL_GREEN;
                 });
             } catch (Exception ex) {
                 MinecraftClient.getInstance().execute(() -> {
-                    capeMessage = "§cUpload failed: " + ex.getMessage();
-                    capeMsgColor = COL_RED;
                     capeUploading.set(false);
+                    statusMsg = "§cUpload error: " + ex.getMessage();
+                    statusMsgColor = COL_RED;
                 });
             }
-        }).start();
+        });
     }
-
 
     @Override
     public void close() {

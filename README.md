@@ -22,6 +22,13 @@
 - **Discord Webhook Support:** Feed exotic detections directly to your private Discord channel for remote tracking.
 - **Modern Settings UI:** A fully custom, flat-design settings screen (default key: `RSHIFT`) with masked API key input and clipboard support.
 
+### ⚕ Exotico Social & E2EE
+- **End-to-End Encryption (E2EE):** Secure private messaging using RSA-2048 encryption. Your private keys never leave your computer.
+- **Global Chat:** Real-time global communication with all Exotico users.
+- **Friend System:** Manage friends, see their online status, and see which server they are currently playing on.
+- **Moderation Tools:** Built-in tools for authorized staff to delete disruptive messages and ban users from the global chat in real-time.
+- **Rank System:** Custom ranks (VIP, MOD, ADMIN, DEV) with distinct colors and permissions.
+
 ---
 
 ## 🚀 Getting Started
@@ -46,7 +53,7 @@ The project uses Gradle for dependency management.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/exotico.git
+git clone https://github.com/LootingVIo/exotico.git
 cd exotico
 
 # Build the project
