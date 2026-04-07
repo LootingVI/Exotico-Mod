@@ -149,8 +149,9 @@ public class SocialManager {
 
             MinecraftClient mc = MinecraftClient.getInstance();
 
-            switch (type) {
-                case "FRIEND_ONLINE": {
+            mc.execute(() -> {
+                switch (type) {
+                    case "FRIEND_ONLINE": {
                     if (mc.player != null) {
                         String fUuid = payload.get("uuid").getAsString();
                         if (!onlineFriends.contains(fUuid))
@@ -347,6 +348,7 @@ public class SocialManager {
                     break;
                 }
             }
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
