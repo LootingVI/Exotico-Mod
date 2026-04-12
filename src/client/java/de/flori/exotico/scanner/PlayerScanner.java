@@ -78,23 +78,69 @@ public class PlayerScanner {
             if (now - lastApiCallTime < API_CALL_DELAY)
                 return;
 
+            boolean scannedNew = false;
             for (PlayerListEntry entry : client.getNetworkHandler().getPlayerList()) {
-                String name = entry.getProfile().name();
-                if (name == null || name.isEmpty())
+                if (isNpc(entry))
                     continue;
+
+                String name = entry.getProfile().name();
                 if (scannedPlayers.contains(name))
                     continue;
 
-
                 int level = extractLevel(entry);
+                // On Hypixel SkyBlock, every real player has a level. 
+                // If level is -1, it's likely an NPC or the information hasn't loaded yet.
+                if (level == -1)
+                    continue;
 
                 scanPlayer(name, level, client);
                 scannedPlayers.add(name);
                 lastApiCallTime = now;
+                scannedNew = true;
                 break;
+            }
+            
+            if (!scannedNew && ExoticoConfig.getInstance().enableAutoHopper) {
+                if (playersWithExotics.isEmpty() && scannedPlayers.size() > 5) { // Need at least 5 players to consider it a real lobby
+                    long delay = ExoticoConfig.getInstance().autoHopperDelay;
+                    if (now - lastApiCallTime > delay) {
+                        lastApiCallTime = now + 10000; // Prevent spamming
+                        if (client.player != null) {
+                            client.player.sendMessage(Text.literal("§e[Exotico AutoHopper] §7No exotics found. Switching lobbys..."), false);
+                            client.player.networkHandler.sendChatCommand("hub"); 
+                        }
+                    }
+                }
             }
         });
     }
+
+    /**
+     * Checks if a player list entry is likely an NPC or Bot.
+     */
+    private static boolean isNpc(PlayerListEntry entry) {
+        if (entry.getProfile() == null) return true;
+        String name = entry.getProfile().name();
+        
+        // Skip invalid/blank names (Real players have 3-16 chars, alphanumeric/underscore)
+        if (name == null || !name.matches("^[a-zA-Z0-9_]{3,16}$")) {
+            return true;
+        }
+
+        // Hypixel specific: Real players have version 4 UUIDs (random).
+        // NPCs often use version 2 (time-based) or version 3 (name-based offline).
+        if (entry.getProfile().id().version() != 4) {
+            return true;
+        }
+
+        // NPCs usually have 0 latency in the player list on Hypixel.
+        if (entry.getLatency() == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
 
 
 
@@ -128,8 +174,9 @@ public class PlayerScanner {
         }
 
 
-        return levelFromText(entry.getProfile().name());
+        return -1;
     }
+
 
 
     private static int levelFromText(String text) {

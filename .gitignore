@@ -22,6 +22,7 @@ Thumbs.db
 *.bak
 *.tmp
 api-server/
+Bot/
 
 # Project specific temporary files
 build_verify.txt

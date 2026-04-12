@@ -78,12 +78,13 @@ public class ExoticoSettingsScreen extends Screen {
 
     private final String[] inputLabels = {
             "API Key", "Discord Webhook", "Cache Interval (ms)",
-            "Auto-Message Template ({name})", "Min Level", "Max Level", "Msg Cooldown (ms)"
+            "Auto-Message Template ({name})", "Min Level", "Max Level", "Msg Cooldown (ms)",
+            "Hopper Delay (ms)"
     };
-    private final String[] inputValues = { "", "", "", "", "", "", "" };
-    private final int[] inputMaxLen = { 128, 256, 10, 200, 4, 4, 9 };
+    private final String[] inputValues = { "", "", "", "", "", "", "", "" };
+    private final int[] inputMaxLen = { 128, 256, 10, 200, 4, 4, 9, 10 };
 
-    private final boolean[] inputMasked = { true, false, false, false, false, false, false };
+    private final boolean[] inputMasked = { true, false, false, false, false, false, false, false };
 
     private final String[] inputPlaceholder = {
             "Paste your API key here…",
@@ -92,7 +93,8 @@ public class ExoticoSettingsScreen extends Screen {
             "e.g. Hey {name}, nice exotics!",
             "e.g. 0",
             "e.g. 999",
-            "e.g. 60000"
+            "e.g. 60000",
+            "e.g. 4000"
     };
 
     private final String[] inputHints = {
@@ -102,14 +104,16 @@ public class ExoticoSettingsScreen extends Screen {
             "§7Use {name} as placeholder for the player's name",
             "§7Only message players with level ≥ this (0 = everyone)",
             "§7Only message players with level ≤ this (999 = everyone)",
-            "§7Minimum ms before the same player gets messaged again"
+            "§7Minimum ms before the same player gets messaged again",
+            "§7Time to wait before /hub"
     };
 
     private final String[] toggleLabels = {
             "Auto Scan", "Sounds", "Tooltips", "Player Highlight",
-            "HUD Overlay", "Auto-Message", "Inv. Highlight", "Wavy Capes"
+            "HUD Overlay", "Auto-Message", "Inv. Highlight", "Wavy Capes",
+            "Auto Hopper", "AH Sniper"
     };
-    private final boolean[] toggles = new boolean[8];
+    private final boolean[] toggles = new boolean[10];
 
     private volatile String capePath = "";
     private String statusMsg = "";
@@ -137,6 +141,7 @@ public class ExoticoSettingsScreen extends Screen {
         inputValues[4] = String.valueOf(c.autoMsgMinLevel);
         inputValues[5] = String.valueOf(c.autoMsgMaxLevel);
         inputValues[6] = String.valueOf(c.autoMsgCooldown);
+        inputValues[7] = String.valueOf(c.autoHopperDelay);
         toggles[0] = c.autoScan;
         toggles[1] = c.enableSounds;
         toggles[2] = c.enableTooltips;
@@ -145,6 +150,8 @@ public class ExoticoSettingsScreen extends Screen {
         toggles[5] = c.enableAutoMsg;
         toggles[6] = c.enableInventoryHighlight;
         toggles[7] = c.enableWavyCapes;
+        toggles[8] = c.enableAutoHopper;
+        toggles[9] = c.enableAhSniper;
     }
 
     private void saveConfig() {
@@ -160,6 +167,8 @@ public class ExoticoSettingsScreen extends Screen {
         c.enableAutoMsg = toggles[5];
         c.enableInventoryHighlight = toggles[6];
         c.enableWavyCapes = toggles[7];
+        c.enableAutoHopper = toggles[8];
+        c.enableAhSniper = toggles[9];
         try {
             c.scanCooldown = Long.parseLong(inputValues[2].trim());
         } catch (Exception ignored) {
@@ -176,6 +185,10 @@ public class ExoticoSettingsScreen extends Screen {
             c.autoMsgCooldown = Long.parseLong(inputValues[6].trim());
         } catch (Exception ignored) {
         }
+        try {
+            c.autoHopperDelay = Long.parseLong(inputValues[7].trim());
+        } catch (Exception ignored) {
+        }
         ExoticoConfig.save();
     }
 
@@ -185,7 +198,7 @@ public class ExoticoSettingsScreen extends Screen {
 
     private float maxScroll() {
         return switch (currentTab) {
-            case 0 -> 220f;
+            case 0 -> 280f;
             case 1 -> toggles[5] ? 300f : 80f;
             default -> 0f;
         };
@@ -275,16 +288,24 @@ public class ExoticoSettingsScreen extends Screen {
         sectionLabel(ctx, "Account", px + pad, baseY + pad);
         drawInput(ctx, mx, my, px + pad, baseY + pad + 16, fw, 0);
 
-        sectionLabel(ctx, "Performance", px + pad, baseY + pad + 62);
+        sectionLabel(ctx, "Performance & Automation", px + pad, baseY + pad + 62);
         drawInput(ctx, mx, my, px + pad, baseY + pad + 78, hw, 2);
+        if (toggles[8]) {
+            drawInput(ctx, mx, my, px + pad + hw + 8, baseY + pad + 78, hw, 7);
+        }
 
         sectionLabel(ctx, "Display & Detection", px + pad, baseY + pad + 124);
-        drawToggle(ctx, mx, my, px + pad, baseY + pad + 140, 0);
-        drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 140, 2);
-        drawToggle(ctx, mx, my, px + pad, baseY + pad + 180, 6);
-        drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 180, 3);
-        drawToggle(ctx, mx, my, px + pad, baseY + pad + 220, 7);
-        drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 220, 4);
+        drawToggle(ctx, mx, my, px + pad, baseY + pad + 140, 0); // Auto Scan
+        drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 140, 6); // Inv Highlight
+        
+        drawToggle(ctx, mx, my, px + pad, baseY + pad + 180, 8); // Auto Hopper
+        drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 180, 9); // AH Sniper
+        
+        drawToggle(ctx, mx, my, px + pad, baseY + pad + 220, 3); // Player Highlight
+        drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 220, 4); // HUD Overlay
+        
+        drawToggle(ctx, mx, my, px + pad, baseY + pad + 260, 2); // Tooltips
+        drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 260, 7); // Capes
     }
 
     private void renderNotifications(DrawContext ctx, int mx, int my, int baseY) {
@@ -636,6 +657,10 @@ public class ExoticoSettingsScreen extends Screen {
                 activeInput = 2;
                 return true;
             }
+            if (toggles[8] && hover(mx, my, px + pad + hw + 8, baseY + pad + 78, hw, 22)) {
+                activeInput = 7;
+                return true;
+            }
         } else {
             if (hover(mx, my, px + pad, baseY + pad + 16, fw, 22)) {
                 activeInput = 1;
@@ -672,12 +697,14 @@ public class ExoticoSettingsScreen extends Screen {
         int[][] pos;
         if (currentTab == 0) {
             pos = new int[][] {
-                    { 0, px + pad, baseY + pad + 140 },
-                    { 2, px + pad + hw + 8, baseY + pad + 140 },
-                    { 6, px + pad, baseY + pad + 180 },
-                    { 3, px + pad + hw + 8, baseY + pad + 180 },
-                    { 7, px + pad, baseY + pad + 220 },
-                    { 4, px + pad + hw + 8, baseY + pad + 220 },
+                    { 0, px + pad, baseY + pad + 140 }, // Auto Scan
+                    { 6, px + pad + hw + 8, baseY + pad + 140 }, // Inv Highlight
+                    { 8, px + pad, baseY + pad + 180 }, // Auto Hopper
+                    { 9, px + pad + hw + 8, baseY + pad + 180 }, // AH Sniper
+                    { 3, px + pad, baseY + pad + 220 }, // Player Highlight
+                    { 4, px + pad + hw + 8, baseY + pad + 220 }, // HUD Overlay
+                    { 2, px + pad, baseY + pad + 260 }, // Tooltips
+                    { 7, px + pad + hw + 8, baseY + pad + 260 }, // Capes
             };
         } else {
             pos = new int[][] {

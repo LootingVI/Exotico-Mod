@@ -17,6 +17,9 @@ public class ExoticoConfig {
 
     public String apiKey = "";
     public boolean autoScan = false;
+    public boolean enableAutoHopper = false;
+    public long autoHopperDelay = 4000;
+    public boolean enableAhSniper = true;
     public long scanCooldown = 300000;
     public String discordWebhook = "";
     public boolean enableSounds = true;
