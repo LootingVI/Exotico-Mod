@@ -1,0 +1,27 @@
+# Centralized per-version properties.
+# See https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties
+mod.id = "exotico"
+mod.name = "Exotico"
+mod.group = "de.flori"
+mod.version = "1.0-SNAPSHOT"
+
+deps.fabric_loader = "0.18.4"
+loomx.loom_version = "1.17-SNAPSHOT"
+
+["1.21.11"]
+mod.mc_compat = "1.21.11"
+mod.mc_releases = ["1.21.11"]
+# kept from the previous 1.21.11-only gradle.properties
+deps.fabric_api = "0.141.3+1.21.11"
+
+["26.1.2"]
+mod.mc_compat = "26.1.2"
+mod.mc_releases = ["26.1.2"]
+# latest confirmed build as of 2026-07-18, verify on https://modrinth.com/mod/fabric-api/versions before release
+deps.fabric_api = "0.155.2+26.1.2"
+
+["26.2"]
+mod.mc_compat = "~26.2"
+mod.mc_releases = ["26.2"]
+# latest confirmed build as of 2026-07-18, verify on https://modrinth.com/mod/fabric-api/versions before release
+deps.fabric_api = "0.155.2+26.2"

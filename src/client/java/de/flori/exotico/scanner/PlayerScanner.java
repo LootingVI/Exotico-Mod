@@ -8,7 +8,11 @@ import de.flori.exotico.util.DiscordWebhook;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
+//? if !mojmap {
 import net.minecraft.client.network.PlayerListEntry;
+//?} else {
+/*import net.minecraft.client.multiplayer.PlayerInfo;
+ *///?}
 import net.minecraft.scoreboard.Team;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.ClickEvent;
@@ -79,7 +83,11 @@ public class PlayerScanner {
                 return;
 
             boolean scannedNew = false;
+            //? if !mojmap {
             for (PlayerListEntry entry : client.getNetworkHandler().getPlayerList()) {
+                //?} else {
+                /*for (PlayerInfo entry : client.getNetworkHandler().getPlayerList()) {
+                 *///?}
                 if (isNpc(entry))
                     continue;
 
@@ -88,7 +96,7 @@ public class PlayerScanner {
                     continue;
 
                 int level = extractLevel(entry);
-                // On Hypixel SkyBlock, every real player has a level. 
+                // On Hypixel SkyBlock, every real player has a level.
                 // If level is -1, it's likely an NPC or the information hasn't loaded yet.
                 if (level == -1)
                     continue;
@@ -99,15 +107,19 @@ public class PlayerScanner {
                 scannedNew = true;
                 break;
             }
-            
+
             if (!scannedNew && ExoticoConfig.getInstance().enableAutoHopper) {
                 if (playersWithExotics.isEmpty() && scannedPlayers.size() > 5) { // Need at least 5 players to consider it a real lobby
                     long delay = ExoticoConfig.getInstance().autoHopperDelay;
                     if (now - lastApiCallTime > delay) {
                         lastApiCallTime = now + 10000; // Prevent spamming
                         if (client.player != null) {
+                            //? if !mojmap {
                             client.player.sendMessage(Text.literal("§e[Exotico AutoHopper] §7No exotics found. Switching lobbys..."), false);
-                            client.player.networkHandler.sendChatCommand("hub"); 
+                            //?} else {
+                            /*client.player.sendSystemMessage(Text.literal("§e[Exotico AutoHopper] §7No exotics found. Switching lobbys..."));*/
+                            //?}
+                            client.player.networkHandler.sendChatCommand("hub");
                         }
                     }
                 }
@@ -118,10 +130,14 @@ public class PlayerScanner {
     /**
      * Checks if a player list entry is likely an NPC or Bot.
      */
+    //? if !mojmap {
     private static boolean isNpc(PlayerListEntry entry) {
+        //?} else {
+        /*private static boolean isNpc(PlayerInfo entry) {
+         *///?}
         if (entry.getProfile() == null) return true;
         String name = entry.getProfile().name();
-        
+
         // Skip invalid/blank names (Real players have 3-16 chars, alphanumeric/underscore)
         if (name == null || !name.matches("^[a-zA-Z0-9_]{3,16}$")) {
             return true;
@@ -144,7 +160,11 @@ public class PlayerScanner {
 
 
 
+    //? if !mojmap {
     public static int extractLevel(PlayerListEntry entry) {
+        //?} else {
+        /*public static int extractLevel(PlayerInfo entry) {
+         *///?}
 
         Text displayName = entry.getDisplayName();
         if (displayName != null) {
@@ -239,29 +259,51 @@ public class PlayerScanner {
                         .append(Text.literal("Found " + filtered.size() + " exotic(s) on ")
                                 .formatted(Formatting.YELLOW))
                         .append(Text.literal(name + levelStr).formatted(Formatting.AQUA)
+                                //? if !mojmap {
                                 .styled(style -> style
+                                        //?} else {
+                                        /*.withStyle(style -> style
+                                         *///?}
                                         .withClickEvent(new ClickEvent.SuggestCommand("/exotico scan " + name))
                                         .withHoverEvent(
                                                 new HoverEvent.ShowText(Text.literal("Click to view details")))))
                         .append(Text.literal(" "))
                         .append(Text.literal("[Party]").formatted(Formatting.LIGHT_PURPLE)
+                                //? if !mojmap {
                                 .styled(style -> style
+                                        //?} else {
+                                        /*.withStyle(style -> style
+                                         *///?}
                                         .withClickEvent(new ClickEvent.RunCommand("/p " + name))
                                         .withHoverEvent(new HoverEvent.ShowText(Text.literal("Invite to Party")))))
                         .append(Text.literal(" "))
                         .append(Text.literal("[Trade]").formatted(Formatting.GREEN)
+                                //? if !mojmap {
                                 .styled(style -> style
+                                        //?} else {
+                                        /*.withStyle(style -> style
+                                         *///?}
                                         .withClickEvent(new ClickEvent.SuggestCommand("/trade " + name))
                                         .withHoverEvent(new HoverEvent.ShowText(Text.literal("Trade with Player")))))
                         .append(Text.literal(" "))
                         .append(Text.literal("[SkyCrypt]").formatted(Formatting.BLUE)
+                                //? if !mojmap {
                                 .styled(style -> style
+                                        //?} else {
+                                        /*.withStyle(style -> style
+                                         *///?}
                                         .withClickEvent(new ClickEvent.OpenUrl(
                                                 URI.create("https://sky.shiiyu.moe/stats/" + name)))
                                         .withHoverEvent(new HoverEvent.ShowText(Text.literal("Open in Browser")))));
 
+                //? if !mojmap {
                 if (client.player != null)
                     client.player.sendMessage(msg, false);
+                //?} else {
+                /*if (client.player != null) {
+                    client.player.sendSystemMessage(msg);
+                }
+                *///?}
 
 
                 if (cfg.enableAutoMsg && client.player != null) {
