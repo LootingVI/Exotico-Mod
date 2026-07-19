@@ -1,7 +1,11 @@
 package de.flori.exotico.client;
 
 import de.flori.exotico.config.ExoticoConfig;
+//? if !mojmap {
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+//?} else {
+/*import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
+ *///?}
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
@@ -9,7 +13,11 @@ import net.minecraft.client.render.RenderTickCounter;
 import java.util.ArrayList;
 import java.util.List;
 
+//? if !mojmap {
 public class ExoticoHudOverlay implements HudRenderCallback {
+//?} else {
+    /*public class ExoticoHudOverlay implements HudElement {
+     *///?}
 
     public static final List<RecentExotic> recentExotics = new ArrayList<>();
     private static final long SHOW_DURATION = 120000;
@@ -22,8 +30,13 @@ public class ExoticoHudOverlay implements HudRenderCallback {
         }
     }
 
+    //? if !mojmap {
     @Override
     public void onHudRender(DrawContext drawContext, RenderTickCounter tickCounter) {
+        //?} else {
+    /*@Override
+    public void extractRenderState(DrawContext drawContext, RenderTickCounter tickCounter) {
+    *///?}
         if (!ExoticoConfig.getInstance().enableHudOverlay)
             return;
 
@@ -41,7 +54,12 @@ public class ExoticoHudOverlay implements HudRenderCallback {
         String title = "✦ Recent Exotics ✦";
         int titleWidth = client.textRenderer.getWidth(title);
         drawContext.fill(screenWidth - titleWidth - 15, y, screenWidth - 5, y + 14, 0xAA060610);
-        drawContext.drawTextWithShadow(client.textRenderer, title, screenWidth - titleWidth - 10, y + 3, 0xFFFFAA00);
+        //? if !mojmap {
+        drawContext.drawTextWithShadow(
+                //?} else {
+                /*drawContext.text(*/
+                //?}
+                client.textRenderer, title, screenWidth - titleWidth - 10, y + 3, 0xFFFFAA00);
         y += 16;
 
         for (RecentExotic entry : recentExotics) {
@@ -54,7 +72,12 @@ public class ExoticoHudOverlay implements HudRenderCallback {
             drawContext.fill(screenWidth - width - 15, y, screenWidth - 5, y + 12, 0x881A1A2A);
             drawContext.fill(screenWidth - width - 16, y, screenWidth - width - 15, y + 12, 0xFFFFAA00);
 
-            drawContext.drawTextWithShadow(client.textRenderer, text, screenWidth - width - 10, y + 2, 0xFFE0E0E0);
+            //? if !mojmap {
+            drawContext.drawTextWithShadow(
+                    //?} else {
+                    /*drawContext.text(*/
+                    //?}
+                    client.textRenderer, text, screenWidth - width - 10, y + 2, 0xFFE0E0E0);
 
             y += 14;
         }

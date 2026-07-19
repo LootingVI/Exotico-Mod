@@ -1,8 +1,13 @@
 package de.flori.exotico.mixin.client;
 
 import de.flori.exotico.config.ExoticoConfig;
+//? if !mojmap {
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
+//?} else {
+/*import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+*///?}
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.feature.CapeFeatureRenderer;
@@ -20,7 +25,7 @@ public class WavyCapeMixin {
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void onRender(MatrixStack matrices, OrderedRenderCommandQueue commandQueue, int light,
-            PlayerEntityRenderState state, float yaw, float pitch, CallbackInfo ci) {
+                          PlayerEntityRenderState state, float yaw, float pitch, CallbackInfo ci) {
         if (!ExoticoConfig.getInstance().enableWavyCapes)
             return;
 
@@ -31,7 +36,11 @@ public class WavyCapeMixin {
         ci.cancel();
 
         Identifier capeTexture = state.skinTextures.cape().id();
+        //? if !mojmap {
         RenderLayer layer = RenderLayers.armorCutoutNoCull(capeTexture);
+        //?} else {
+        /*RenderType layer = RenderTypes.armorCutoutNoCull(capeTexture);*/
+        //?}
 
         matrices.push();
 
@@ -90,7 +99,7 @@ public class WavyCapeMixin {
     }
 
     private void drawSegment(MatrixStack.Entry entry, VertexConsumer vc, int light, int i, float h, float w,
-            float uvStepH) {
+                             float uvStepH) {
         float xL = -w / 2.0f;
         float xR = w / 2.0f;
         float yT = 0;
@@ -118,7 +127,7 @@ public class WavyCapeMixin {
     }
 
     private void vertex(VertexConsumer vc, MatrixStack.Entry entry, float x, float y, float z, float u, float v,
-            float nx, float ny, float nz, int light) {
+                        float nx, float ny, float nz, int light) {
         vc.vertex(entry.getPositionMatrix(), x, y, z)
                 .color(0xFFFFFFFF)
                 .texture(u, v)

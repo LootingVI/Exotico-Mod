@@ -2,9 +2,15 @@ package de.flori.exotico.client.social;
 
 import net.minecraft.client.MinecraftClient;
 
+//? if !mojmap {
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
+//?} else {
+/*import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+*///?}
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
@@ -54,16 +60,31 @@ public class SocialScreen extends Screen {
         py = (height - PANEL_H) / 2;
     }
 
+    //? if !mojmap {
     @Override
     public boolean mouseClicked(Click click, boolean bl) {
+        //?} else {
+    /*@Override
+    public boolean mouseClicked(MouseButtonEvent click, boolean bl) {
+    *///?}
         if (click.button() == 0) {
             double mouseX = click.x();
             double mouseY = click.y();
             // Check close button
             int clX = px + PANEL_W - 26, clY = py + 7;
             if (hover(mouseX, mouseY, clX, clY, 18, 18)) {
+                //? if !mojmap {
                 if (client != null)
                     client.setScreen(parent);
+                //?} else {
+                /*if (minecraft != null) {
+                    //? if !guiScreenHolder {
+                    minecraft.setScreen(parent);
+                    //?} else {
+                    minecraft.gui.setScreen(parent);
+                    //?}
+                }*/
+                //?}
                 return true;
             }
 
@@ -197,8 +218,13 @@ public class SocialScreen extends Screen {
         return super.mouseClicked(click, bl);
     }
 
+    //? if !mojmap {
     @Override
     public boolean charTyped(CharInput input) {
+        //?} else {
+    /*@Override
+    public boolean charTyped(CharacterEvent input) {
+    *///?}
         char chr = (char) input.codepoint();
         if (chr >= 32 && chr != 127) {
             if (currentTab == 0 && chatActive) {
@@ -221,8 +247,13 @@ public class SocialScreen extends Screen {
         return super.charTyped(input);
     }
 
+    //? if !mojmap {
     @Override
     public boolean keyPressed(KeyInput input) {
+        //?} else {
+    /*@Override
+    public boolean keyPressed(KeyEvent input) {
+    *///?}
         int keyCode = input.key();
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             if (chatActive || friendActive) {
@@ -250,10 +281,17 @@ public class SocialScreen extends Screen {
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                //? if !mojmap {
                 if (!friendInput.trim().isEmpty() && client != null && client.player != null) {
                     client.player.sendMessage(Text.literal("§aFriend request sent!"), false);
                     friendInput = "";
                 }
+                //?} else {
+                /*if (!friendInput.trim().isEmpty() && minecraft != null && minecraft.player != null) {
+                    minecraft.player.sendSystemMessage(Text.literal("§aFriend request sent!"));
+                    friendInput = "";
+                }
+                *///?}
                 return true;
             }
         }
@@ -261,8 +299,13 @@ public class SocialScreen extends Screen {
         return super.keyPressed(input);
     }
 
+    //? if !mojmap {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+        //?} else {
+    /*@Override
+    public void extractRenderState(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    *///?}
         tickCounter++;
 
         ctx.fill(0, 0, width, height, 0xBB080814); // Background blur equivalent
@@ -272,14 +315,24 @@ public class SocialScreen extends Screen {
 
         fillRect(ctx, px, py, PANEL_W, HEADER_H, COL_BG);
         fillRect(ctx, px, py, 3, HEADER_H, COL_ACCENT);
-        ctx.drawTextWithShadow(textRenderer, "⚕ EXOTICO SOCIAL", px + 12, py + 12, COL_ACCENT);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, "⚕ EXOTICO SOCIAL", px + 12, py + 12, COL_ACCENT);
 
         // Close Button
         int clX = px + PANEL_W - 26, clY = py + 7;
         boolean clHov = hover(mouseX, mouseY, clX, clY, 18, 18);
         fillRect(ctx, clX, clY, 18, 18, clHov ? 0x88FF3344 : 0x44FF3344);
         drawBorder(ctx, clX, clY, 18, 18, clHov ? 0xFFFF5555 : 0xFF993333);
-        ctx.drawCenteredTextWithShadow(textRenderer, "×", clX + 9, clY + 5, COL_TEXT);
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, "×", clX + 9, clY + 5, COL_TEXT);
 
         // Tabs
         String[] tabs = { "Global Chat", "DMs", "Friends Setup" };
@@ -292,7 +345,12 @@ public class SocialScreen extends Screen {
             boolean hov = !act && hover(mouseX, mouseY, tx, tabY, tabW, TAB_H);
             fillRect(ctx, tx, tabY, tabW, TAB_H, act ? COL_SURFACE : (hov ? COL_HOVER : COL_BG));
             drawBorder(ctx, tx, tabY, tabW, TAB_H, act ? COL_BORDER_ACT : COL_BORDER);
-            ctx.drawCenteredTextWithShadow(textRenderer, tabs[i], tx + tabW / 2, tabY + 8,
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer, tabs[i], tx + tabW / 2, tabY + 8,
                     act ? COL_TEXT : COL_TEXT_DIM);
         }
 
@@ -307,7 +365,11 @@ public class SocialScreen extends Screen {
             renderFriendsTab(ctx, mouseX, mouseY, scX, scY, scW, scH);
         }
 
+        //? if !mojmap {
         super.render(ctx, mouseX, mouseY, delta);
+        //?} else {
+        /*super.extractRenderState(ctx, mouseX, mouseY, delta);*/
+        //?}
     }
 
     private void renderChatTab(DrawContext ctx, int mx, int my, int sx, int sy, int sw, int sh) {
@@ -335,18 +397,33 @@ public class SocialScreen extends Screen {
             if (textRenderer.getWidth(displ) > sw - (isAdmin ? 60 : 30)) {
                 displ = displ.substring(0, Math.min(displ.length(), 40)) + "...";
             }
-            ctx.drawTextWithShadow(textRenderer, displ, sx + 15, yOff, COL_TEXT);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, displ, sx + 15, yOff, COL_TEXT);
 
             if (isAdmin && !msg.isAdminDeleted) {
                 // Delete button [X]
                 boolean hovDel = hover(mx, my, sx + sw - 35, yOff, 12, 12);
                 fillRect(ctx, sx + sw - 35, yOff, 12, 12, hovDel ? 0x88FF3344 : 0x44FF3344);
-                ctx.drawTextWithShadow(textRenderer, "X", sx + sw - 32, yOff + 2, 0xFFFF5555);
+                //? if !mojmap {
+                ctx.drawTextWithShadow(
+                        //?} else {
+                        /*ctx.text(*/
+                        //?}
+                        textRenderer, "X", sx + sw - 32, yOff + 2, 0xFFFF5555);
 
                 // Ban button [B]
                 boolean hovBan = hover(mx, my, sx + sw - 50, yOff, 12, 12);
                 fillRect(ctx, sx + sw - 50, yOff, 12, 12, hovBan ? 0x88FFAA00 : 0x44FFAA00);
-                ctx.drawTextWithShadow(textRenderer, "B", sx + sw - 47, yOff + 2, 0xFFFFAA00);
+                //? if !mojmap {
+                ctx.drawTextWithShadow(
+                        //?} else {
+                        /*ctx.text(*/
+                        //?}
+                        textRenderer, "B", sx + sw - 47, yOff + 2, 0xFFFFAA00);
             }
 
             yOff -= 15;
@@ -359,10 +436,20 @@ public class SocialScreen extends Screen {
 
     private void renderDMTab(DrawContext ctx, int mx, int my, int sx, int sy, int sw, int sh) {
         if (selectedFriend == null) {
-            ctx.drawCenteredTextWithShadow(textRenderer, "§6Direct Messages", sx + sw / 2, sy + 10, 0xFFFFFFFF);
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer, "§6Direct Messages", sx + sw / 2, sy + 10, 0xFFFFFFFF);
             int yOff = sy + 30;
             if (SocialManager.friendsList.isEmpty()) {
-                ctx.drawCenteredTextWithShadow(textRenderer, "§8No friends yet. Go to 'Setup' to add some!",
+                //? if !mojmap {
+                ctx.drawCenteredTextWithShadow(
+                        //?} else {
+                        /*ctx.centeredText(*/
+                        //?}
+                        textRenderer, "§8No friends yet. Go to 'Setup' to add some!",
                         sx + sw / 2, sy + 60, 0xFFFFFFFF);
             } else {
                 for (SocialManager.FriendInfo fi : SocialManager.friendsList) {
@@ -371,13 +458,23 @@ public class SocialScreen extends Screen {
                     drawBorder(ctx, sx + 20, yOff, sw - 40, 20, COL_BORDER);
 
                     String pref = fi.online ? "§a● " : "§7○ ";
-                    ctx.drawTextWithShadow(textRenderer, pref + "§f" + fi.name + " §7(" + fi.rank + ")", sx + 28,
+                    //? if !mojmap {
+                    ctx.drawTextWithShadow(
+                            //?} else {
+                            /*ctx.text(*/
+                            //?}
+                            textRenderer, pref + "§f" + fi.name + " §7(" + fi.rank + ")", sx + 28,
                             yOff + 6, 0xFFFFFFFF);
                     yOff += 22;
                 }
             }
         } else {
-            ctx.drawTextWithShadow(textRenderer, "§aDM with §l" + selectedFriend.name, sx + 15, sy + 10, 0xFFFFFFFF);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, "§aDM with §l" + selectedFriend.name, sx + 15, sy + 10, 0xFFFFFFFF);
 
             int listH = sh - 75;
             fillRect(ctx, sx + 10, sy + 25, sw - 20, listH, 0xFF08080C);
@@ -391,7 +488,12 @@ public class SocialScreen extends Screen {
                 if (yChat < sy + 30)
                     break;
                 SocialManager.ChatMessage m = pms.get(i);
-                ctx.drawTextWithShadow(textRenderer,
+                //? if !mojmap {
+                ctx.drawTextWithShadow(
+                        //?} else {
+                        /*ctx.text(*/
+                        //?}
+                        textRenderer,
                         "§b" + (m.sender.length() > 30 ? m.sender.substring(0, 10) : m.sender) + ": §f" + m.content,
                         sx + 15, yChat, 0xFFFFFFFF);
                 yChat -= 12;
@@ -404,32 +506,67 @@ public class SocialScreen extends Screen {
     }
 
     private void renderFriendsTab(DrawContext ctx, int mx, int my, int sx, int sy, int sw, int sh) {
-        ctx.drawTextWithShadow(textRenderer, "Manage EXOTICO Friends", sx + 20, sy + 20, COL_GOLD);
-        ctx.drawTextWithShadow(textRenderer, "Being friends allows you to send encrypted DMs", sx + 20, sy + 35,
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, "Manage EXOTICO Friends", sx + 20, sy + 20, COL_GOLD);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, "Being friends allows you to send encrypted DMs", sx + 20, sy + 35,
                 COL_TEXT_DIM);
-        ctx.drawTextWithShadow(textRenderer, "and see when they join a server.", sx + 20, sy + 50, COL_TEXT_DIM);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, "and see when they join a server.", sx + 20, sy + 50, COL_TEXT_DIM);
 
         int ty = sy + 80;
         drawInput(ctx, sx + 20, ty, sw - 150, 24, friendInput, friendActive, "Friend Username");
         drawButton(ctx, sx + sw - 120, ty, 100, 24, "Add Friend", hover(mx, my, sx + sw - 120, ty, 100, 24));
 
         // Pending Requests
-        ctx.drawTextWithShadow(textRenderer, "Pending Requests:", sx + 20, sy + 115, COL_ACCENT);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, "Pending Requests:", sx + 20, sy + 115, COL_ACCENT);
         int yOff = sy + 130;
         if (SocialManager.pendingRequests.isEmpty()) {
-            ctx.drawTextWithShadow(textRenderer, "§8No pending requests.", sx + 30, yOff, COL_TEXT_DIM);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, "§8No pending requests.", sx + 30, yOff, COL_TEXT_DIM);
         } else {
             for (int i = 0; i < SocialManager.pendingRequests.size(); i++) {
                 SocialManager.FriendRequest req = SocialManager.pendingRequests.get(i);
                 if (yOff > sy + sh - 30)
                     break;
 
-                ctx.drawTextWithShadow(textRenderer, "§7- §f" + req.name, sx + 30, yOff, COL_TEXT);
+                //? if !mojmap {
+                ctx.drawTextWithShadow(
+                        //?} else {
+                        /*ctx.text(*/
+                        //?}
+                        textRenderer, "§7- §f" + req.name, sx + 30, yOff, COL_TEXT);
 
                 // Accept Button
                 boolean hov = hover(mx, my, sx + sw - 80, yOff - 2, 60, 14);
                 fillRect(ctx, sx + sw - 80, yOff - 2, 60, 14, hov ? 0xFF30CC30 : 0xFF208020);
-                ctx.drawCenteredTextWithShadow(textRenderer, "Accept", sx + sw - 50, yOff + 1, COL_TEXT);
+                //? if !mojmap {
+                ctx.drawCenteredTextWithShadow(
+                        //?} else {
+                        /*ctx.centeredText(*/
+                        //?}
+                        textRenderer, "Accept", sx + sw - 50, yOff + 1, COL_TEXT);
 
                 yOff += 18;
             }
@@ -440,7 +577,12 @@ public class SocialScreen extends Screen {
         fillRect(ctx, x, y, w, h, active ? 0xFF181830 : 0xFF0C0C1A);
         drawBorder(ctx, x, y, w, h, active ? COL_BORDER_ACT : COL_BORDER);
         if (val.isEmpty()) {
-            ctx.drawTextWithShadow(textRenderer, ph, x + 8, y + 8, COL_TEXT_DIM);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, ph, x + 8, y + 8, COL_TEXT_DIM);
         } else {
             String disp = val;
             if (textRenderer.getWidth(disp) > w - 24) {
@@ -449,14 +591,24 @@ public class SocialScreen extends Screen {
             if (active && (tickCounter % 20 < 10)) {
                 disp += "_";
             }
-            ctx.drawTextWithShadow(textRenderer, disp, x + 8, y + 8, COL_TEXT);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, disp, x + 8, y + 8, COL_TEXT);
         }
     }
 
     private void drawButton(DrawContext ctx, int x, int y, int w, int h, String text, boolean hover) {
         fillRect(ctx, x, y, w, h, hover ? COL_HOVER : COL_SURFACE);
         drawBorder(ctx, x, y, w, h, hover ? COL_BORDER_ACT : COL_BORDER);
-        ctx.drawCenteredTextWithShadow(textRenderer, text, x + w / 2, y + 8, COL_TEXT);
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, text, x + w / 2, y + 8, COL_TEXT);
     }
 
     private void fillRect(DrawContext ctx, int x, int y, int w, int h, int color) {

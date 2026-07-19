@@ -5,11 +5,20 @@ import de.flori.exotico.config.ExoticoConfig;
 import de.flori.exotico.data.ColorCheckResult;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.RenderPipelines;
+//? if !mojmap {
 import net.minecraft.client.gui.Click;
+//?} else {
+/*import net.minecraft.client.input.MouseButtonEvent;
+ *///?}
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+//? if !mojmap {
 import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
+//?} else {
+/*import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+*///?}
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.component.DataComponentTypes;
@@ -26,6 +35,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,8 +45,12 @@ public class ExoticoSettingsScreen extends Screen {
 
     private final Screen parent;
 
-    private static final int PANEL_W = 500;
-    private static final int PANEL_H = 340;
+    // Clamped to the window size in init() - a fixed 500x340 panel overflows the screen at
+    // small window sizes / high GUI Scale, where the scaled width/height can drop well below that.
+    private static final int PANEL_W_MAX = 500;
+    private static final int PANEL_H_MAX = 340;
+    private int PANEL_W = PANEL_W_MAX;
+    private int PANEL_H = PANEL_H_MAX;
     private static final int HEADER_H = 32;
     private static final int TAB_H = 26;
 
@@ -127,6 +142,8 @@ public class ExoticoSettingsScreen extends Screen {
 
     @Override
     protected void init() {
+        PANEL_W = Math.min(PANEL_W_MAX, Math.max(280, width - 20));
+        PANEL_H = Math.min(PANEL_H_MAX, Math.max(200, height - 20));
         px = (width - PANEL_W) / 2;
         py = (height - PANEL_H) / 2;
         loadConfig();
@@ -213,8 +230,13 @@ public class ExoticoSettingsScreen extends Screen {
         return true;
     }
 
+    //? if !mojmap {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+        //?} else {
+    /*@Override
+    public void extractRenderState(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    *///?}
         tickCounter++;
 
         float max = maxScroll();
@@ -232,13 +254,23 @@ public class ExoticoSettingsScreen extends Screen {
         fillRect(ctx, px, py, PANEL_W, HEADER_H, COL_BG);
 
         fillRect(ctx, px, py, 3, HEADER_H, COL_GOLD);
-        ctx.drawTextWithShadow(textRenderer, "✦ EXOTICO  Settings", px + 10, py + 12, COL_GOLD);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, "✦ EXOTICO  Settings", px + 10, py + 12, COL_GOLD);
 
         int clX = px + PANEL_W - 26, clY = py + 7;
         boolean clHov = hover(mouseX, mouseY, clX, clY, 18, 18);
         fillRect(ctx, clX, clY, 18, 18, clHov ? 0x88FF3344 : 0x44FF3344);
         drawBorder(ctx, clX, clY, 18, 18, clHov ? COL_RED : 0xFF993333);
-        ctx.drawCenteredTextWithShadow(textRenderer, "×", clX + 9, clY + 5, COL_TEXT);
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, "×", clX + 9, clY + 5, COL_TEXT);
 
         String[] tabs = { "General", "Notify", "Cape", "Collection", "Screenshots", "About" };
         int tabW = PANEL_W / tabs.length;
@@ -251,7 +283,12 @@ public class ExoticoSettingsScreen extends Screen {
 
             if (act)
                 fillRect(ctx, tx + 2, tabY + TAB_H - 2, tabW - 4, 2, COL_GOLD);
-            ctx.drawCenteredTextWithShadow(textRenderer, tabs[i], tx + tabW / 2, tabY + 9,
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer, tabs[i], tx + tabW / 2, tabY + 9,
                     act ? COL_GOLD : (hov ? COL_TEXT : COL_TEXT_DIM));
         }
 
@@ -297,13 +334,13 @@ public class ExoticoSettingsScreen extends Screen {
         sectionLabel(ctx, "Display & Detection", px + pad, baseY + pad + 124);
         drawToggle(ctx, mx, my, px + pad, baseY + pad + 140, 0); // Auto Scan
         drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 140, 6); // Inv Highlight
-        
+
         drawToggle(ctx, mx, my, px + pad, baseY + pad + 180, 8); // Auto Hopper
         drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 180, 9); // AH Sniper
-        
+
         drawToggle(ctx, mx, my, px + pad, baseY + pad + 220, 3); // Player Highlight
         drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 220, 4); // HUD Overlay
-        
+
         drawToggle(ctx, mx, my, px + pad, baseY + pad + 260, 2); // Tooltips
         drawToggle(ctx, mx, my, px + pad + hw + 8, baseY + pad + 260, 7); // Capes
     }
@@ -340,7 +377,12 @@ public class ExoticoSettingsScreen extends Screen {
             int bY = baseY + pad + 20;
             fillRect(ctx, px + pad, bY, PANEL_W - pad * 2, 48, 0xFF1A0D00);
             drawBorder(ctx, px + pad, bY, PANEL_W - pad * 2, 48, COL_GOLD);
-            ctx.drawCenteredTextWithShadow(textRenderer, "⭐ VIP / Premium required", px + PANEL_W / 2, bY + 18,
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer, "⭐ VIP / Premium required", px + PANEL_W / 2, bY + 18,
                     COL_GOLD);
             return;
         }
@@ -349,7 +391,12 @@ public class ExoticoSettingsScreen extends Screen {
         fillRect(ctx, px + pad, inputY, PANEL_W - pad * 2, 22, COL_INPUT_BG);
         drawBorder(ctx, px + pad, inputY, PANEL_W - pad * 2, 22, COL_BORDER);
         String disp = capePath.isEmpty() ? "§7Click Browse… to select a PNG file" : capePath;
-        ctx.drawTextWithShadow(textRenderer, disp, px + pad + 6, inputY + 7, COL_TEXT);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, disp, px + pad + 6, inputY + 7, COL_TEXT);
 
         int btnY = inputY + 32;
         drawButton(ctx, mx, my, px + pad, btnY, 110, 22, "Browse…", COL_ACCENT);
@@ -357,7 +404,12 @@ public class ExoticoSettingsScreen extends Screen {
                 capeUploading.get() ? "Uploading…" : "Upload Cape", COL_PURPLE);
 
         if (!statusMsg.isEmpty())
-            ctx.drawTextWithShadow(textRenderer, statusMsg, px + pad, btnY + 32, statusMsgColor);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, statusMsg, px + pad, btnY + 32, statusMsgColor);
     }
 
     private void renderCollection(DrawContext ctx, int mx, int my, int baseY) {
@@ -367,7 +419,12 @@ public class ExoticoSettingsScreen extends Screen {
         sectionLabel(ctx, "Collection Log  (" + coll.size() + " items)", px + pad, baseY + pad);
 
         if (coll.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(textRenderer, "No exotic items discovered yet.", px + PANEL_W / 2,
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer, "No exotic items discovered yet.", px + PANEL_W / 2,
                     baseY + 80, COL_TEXT_DIM);
             return;
         }
@@ -401,12 +458,26 @@ public class ExoticoSettingsScreen extends Screen {
                 stack.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(Integer.parseInt(hex, 16)));
             } catch (Exception ignored) {
             }
+            //? if !mojmap {
             ctx.drawItem(stack, cx + 4, cy + (ch - 16) / 2);
+            //?} else {
+            /*ctx.item(stack, cx + 4, cy + (ch - 16) / 2);*/
+            //?}
 
             String variant = item.variant != null ? item.variant : "Unknown";
             String cat = (item.category != null ? item.category : "EXOTIC").toUpperCase();
-            ctx.drawTextWithShadow(textRenderer, variant, cx + 24, cy + 10, COL_TEXT);
-            ctx.drawTextWithShadow(textRenderer, "§7" + cat, cx + 24, cy + 22, COL_TEXT_DIM);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, variant, cx + 24, cy + 10, COL_TEXT);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, "§7" + cat, cx + 24, cy + 22, COL_TEXT_DIM);
         }
 
         int totalPages = Math.max(1, (int) Math.ceil((double) coll.size() / ITEMS_PER_PAGE));
@@ -422,7 +493,12 @@ public class ExoticoSettingsScreen extends Screen {
         sectionLabel(ctx, "Screenshots  (" + shots.size() + ")", px + pad, baseY + pad);
 
         if (shots.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(textRenderer, "No screenshots found.", px + PANEL_W / 2, baseY + 80,
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer, "No screenshots found.", px + PANEL_W / 2, baseY + 80,
                     COL_TEXT_DIM);
             return;
         }
@@ -447,17 +523,33 @@ public class ExoticoSettingsScreen extends Screen {
                 ctx.drawTexture(RenderPipelines.GUI_TEXTURED, texId, cx + 4, cy + 4, 0f, 0f, 52, 32, 52, 32);
             } else {
                 fillRect(ctx, cx + 4, cy + 4, 52, 32, 0xFF222235);
-                ctx.drawCenteredTextWithShadow(textRenderer, "§8...", cx + 30, cy + 14, COL_TEXT_DIM);
+                //? if !mojmap {
+                ctx.drawCenteredTextWithShadow(
+                        //?} else {
+                        /*ctx.centeredText(*/
+                        //?}
+                        textRenderer, "§8...", cx + 30, cy + 14, COL_TEXT_DIM);
                 loadThumbnail(path);
             }
 
             String name = path.getFileName().toString();
             if (name.length() > 20)
                 name = name.substring(0, 17) + "...";
-            ctx.drawTextWithShadow(textRenderer, name, cx + 62, cy + 6, COL_TEXT);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, name, cx + 62, cy + 6, COL_TEXT);
 
-            String date = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new Date(path.toFile().lastModified()));
-            ctx.drawTextWithShadow(textRenderer, "§7" + date, cx + 62, cy + 18, COL_TEXT_DIM);
+            String date = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                    .format(new Date(path.toFile().lastModified()).toInstant().atZone(ZoneId.systemDefault()));
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, "§7" + date, cx + 62, cy + 18, COL_TEXT_DIM);
 
             // FIX: Share button — use absolute index i so sharing state is per-screenshot
             int sx = cx + cardW - 56, sy = cy + cardH - 20;
@@ -465,7 +557,12 @@ public class ExoticoSettingsScreen extends Screen {
             boolean shov = !sharing && hover(mx, my, sx, sy, 52, 16);
             fillRect(ctx, sx, sy, 52, 16, sharing ? COL_SURFACE : (shov ? COL_ACCENT : COL_SURFACE));
             drawBorder(ctx, sx, sy, 52, 16, sharing ? COL_TEXT_DIM : (shov ? COL_GOLD : COL_BORDER));
-            ctx.drawCenteredTextWithShadow(textRenderer,
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer,
                     sharing ? "§7..." : "Share",
                     sx + 26, sy + 4,
                     sharing ? COL_TEXT_DIM : (shov ? COL_TEXT : COL_TEXT_DIM));
@@ -477,20 +574,45 @@ public class ExoticoSettingsScreen extends Screen {
             drawPagination(ctx, mx, my, screenshotPage, totalPages, py + PANEL_H - 50);
 
         if (!statusMsg.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(textRenderer, statusMsg, px + PANEL_W / 2, py + PANEL_H - 25,
+            //? if !mojmap {
+            ctx.drawCenteredTextWithShadow(
+                    //?} else {
+                    /*ctx.centeredText(*/
+                    //?}
+                    textRenderer, statusMsg, px + PANEL_W / 2, py + PANEL_H - 25,
                     statusMsgColor);
         }
     }
 
     private void renderAbout(DrawContext ctx, int baseY) {
-        ctx.drawCenteredTextWithShadow(textRenderer, "✦ Exotico Mod ✦", px + PANEL_W / 2, baseY + 20, COL_GOLD);
-        ctx.drawCenteredTextWithShadow(textRenderer, "Premium Exotic Armor Scanner & Cape Tool", px + PANEL_W / 2,
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, "✦ Exotico Mod ✦", px + PANEL_W / 2, baseY + 20, COL_GOLD);
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, "Premium Exotic Armor Scanner & Cape Tool", px + PANEL_W / 2,
                 baseY + 40, COL_TEXT);
-        ctx.drawCenteredTextWithShadow(textRenderer, "§7API: api.flori.tv", px + PANEL_W / 2, baseY + 60, COL_TEXT_DIM);
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, "§7API: api.flori.tv", px + PANEL_W / 2, baseY + 60, COL_TEXT_DIM);
     }
 
     private void sectionLabel(DrawContext ctx, String label, int x, int y) {
-        ctx.drawTextWithShadow(textRenderer, "§e" + label, x, y, COL_GOLD);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, "§e" + label, x, y, COL_GOLD);
         fillRect(ctx, x, y + 10, textRenderer.getWidth(label), 1, 0x44FFAA00);
     }
 
@@ -505,21 +627,41 @@ public class ExoticoSettingsScreen extends Screen {
         String disp;
         if (empty && !active) {
             disp = inputPlaceholder[idx];
-            ctx.drawTextWithShadow(textRenderer, "§8" + disp, x + 6, y + 7, 0xFF505068);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, "§8" + disp, x + 6, y + 7, 0xFF505068);
         } else {
             disp = (inputMasked[idx] && !active)
                     ? "•".repeat(Math.min(raw.length(), 28))
                     : raw;
             if (active && (tickCounter / 10 % 2 == 0))
                 disp += "|";
-            ctx.drawTextWithShadow(textRenderer, disp, x + 6, y + 7, active ? COL_TEXT : COL_TEXT_DIM);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, disp, x + 6, y + 7, active ? COL_TEXT : COL_TEXT_DIM);
         }
 
         if (active) {
             String hint = "§8Ctrl+C copy · Ctrl+V paste · Ctrl+A clear";
-            ctx.drawTextWithShadow(textRenderer, hint, x + 6, y + 24, 0xFF444460);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, hint, x + 6, y + 24, 0xFF444460);
         } else if (!empty) {
-            ctx.drawTextWithShadow(textRenderer, inputHints[idx], x + 2, y + 24, 0xFF444460);
+            //? if !mojmap {
+            ctx.drawTextWithShadow(
+                    //?} else {
+                    /*ctx.text(*/
+                    //?}
+                    textRenderer, inputHints[idx], x + 2, y + 24, 0xFF444460);
         }
     }
 
@@ -533,7 +675,12 @@ public class ExoticoSettingsScreen extends Screen {
         fillRect(ctx, x, y, 2, h, val ? COL_GREEN : COL_BORDER);
         fillRect(ctx, x, y + h - 1, w, 1, val ? COL_GREEN : (hov ? COL_GOLD : COL_BORDER));
         drawBorder(ctx, x, y, w, h, val ? 0xFF2FAE6E : (hov ? COL_GOLD : COL_BORDER));
-        ctx.drawTextWithShadow(textRenderer, toggleLabels[idx], x + 10, y + 11, COL_TEXT);
+        //? if !mojmap {
+        ctx.drawTextWithShadow(
+                //?} else {
+                /*ctx.text(*/
+                //?}
+                textRenderer, toggleLabels[idx], x + 10, y + 11, COL_TEXT);
 
         int trackW = 34, trackH = 14;
         int tx = x + w - trackW - 8;
@@ -555,13 +702,23 @@ public class ExoticoSettingsScreen extends Screen {
         boolean hov = hover(mx, my, x, y, w, h);
         fillRect(ctx, x, y, w, h, hov ? COL_HOVER : COL_SURFACE);
         drawBorder(ctx, x, y, w, h, hov ? accent : COL_BORDER);
-        ctx.drawCenteredTextWithShadow(textRenderer, label, x + w / 2, y + (h - 8) / 2 + 1, hov ? accent : COL_TEXT);
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, label, x + w / 2, y + (h - 8) / 2 + 1, hov ? accent : COL_TEXT);
     }
 
     private void drawPagination(DrawContext ctx, int mx, int my, int page, int total, int y) {
         int bx = px + PANEL_W / 2;
         drawButton(ctx, mx, my, bx - 66, y, 22, 18, "<", COL_GOLD);
-        ctx.drawCenteredTextWithShadow(textRenderer, (page + 1) + " / " + total, bx, y + 5, COL_TEXT_DIM);
+        //? if !mojmap {
+        ctx.drawCenteredTextWithShadow(
+                //?} else {
+                /*ctx.centeredText(*/
+                //?}
+                textRenderer, (page + 1) + " / " + total, bx, y + 5, COL_TEXT_DIM);
         drawButton(ctx, mx, my, bx + 44, y, 22, 18, ">", COL_GOLD);
     }
 
@@ -580,8 +737,13 @@ public class ExoticoSettingsScreen extends Screen {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
+    //? if !mojmap {
     @Override
     public boolean mouseClicked(Click click, boolean bl) {
+        //?} else {
+    /*@Override
+    public boolean mouseClicked(MouseButtonEvent click, boolean bl) {
+    *///?}
         if (click.button() != 0)
             return false;
         int mx = (int) click.x();
@@ -822,8 +984,13 @@ public class ExoticoSettingsScreen extends Screen {
         return false;
     }
 
+    //? if !mojmap {
     @Override
     public boolean keyPressed(KeyInput input) {
+        //?} else {
+    /*@Override
+    public boolean keyPressed(KeyEvent input) {
+    *///?}
         int key = input.key();
         int mods = input.modifiers();
         boolean ctrl = (mods & GLFW.GLFW_MOD_CONTROL) != 0;
@@ -877,10 +1044,17 @@ public class ExoticoSettingsScreen extends Screen {
         return super.keyPressed(input);
     }
 
+    //? if !mojmap {
     @Override
     public boolean charTyped(CharInput input) {
         if (!input.isValidChar() || activeInput < 0 || activeInput >= inputValues.length)
             return false;
+        //?} else {
+    /*@Override
+    public boolean charTyped(CharacterEvent input) {
+        if (!input.isAllowedChatCharacter() || activeInput < 0 || activeInput >= inputValues.length)
+            return false;
+    *///?}
         String cur = inputValues[activeInput];
         if (cur.length() < inputMaxLen[activeInput])
             inputValues[activeInput] = cur + (char) input.codepoint();
@@ -966,7 +1140,11 @@ public class ExoticoSettingsScreen extends Screen {
     public void close() {
         screenshotTextures.values().forEach(id -> MinecraftClient.getInstance().getTextureManager().destroyTexture(id));
         screenshotTextures.clear();
+        //? if !guiScreenHolder {
         MinecraftClient.getInstance().setScreen(parent);
+        //?} else {
+        /*Minecraft.getInstance().gui.setScreen(parent);*/
+        //?}
     }
 
     @Override

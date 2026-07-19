@@ -19,12 +19,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(HandledScreen.class)
 public abstract class InventoryExoticHighlightMixin {
-    
+
     private static net.minecraft.client.gui.screen.Screen lastScreen = null;
     private static final java.util.Set<String> alertedSniperItems = new java.util.HashSet<>();
 
+    //? if !mojmap {
     @Inject(method = "drawSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V", at = @At("TAIL"))
     private void onDrawSlot(DrawContext context, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+        //?} else {
+    /*@Inject(method = "extractSlot(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/screen/slot/Slot;II)V", at = @At("TAIL"))
+    private void onDrawSlot(DrawContext context, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+    *///?}
         if (!ExoticoConfig.getInstance().enableInventoryHighlight) {
             return;
         }
@@ -87,10 +92,17 @@ public abstract class InventoryExoticHighlightMixin {
         }
 
         MinecraftClient client = MinecraftClient.getInstance();
+        //? if !guiScreenHolder {
         if (client.currentScreen != lastScreen) {
             alertedSniperItems.clear();
             lastScreen = client.currentScreen;
         }
+        //?} else {
+        /*if (client.gui.screen() != lastScreen) {
+            alertedSniperItems.clear();
+            lastScreen = client.gui.screen();
+        }*/
+        //?}
 
         if (ExoticoConfig.getInstance().enableAhSniper) {
             String alertKey = slot.id + "_" + hex;
@@ -99,7 +111,11 @@ public abstract class InventoryExoticHighlightMixin {
                 if (client.player != null) {
                     // Play a distinct alert sound and send a chat message
                     client.player.playSound(net.minecraft.sound.SoundEvents.ENTITY_WITHER_SPAWN, 0.5f, 2.0f);
+                    //? if !mojmap {
                     client.player.sendMessage(net.minecraft.text.Text.literal("§c§l[EXOTICO SNIPER] §eExotic item detected in GUI!").formatted(net.minecraft.util.Formatting.BOLD), false);
+                    //?} else {
+                    /*client.player.sendSystemMessage(net.minecraft.text.Text.literal("§c§l[EXOTICO SNIPER] §eExotic item detected in GUI!").formatted(net.minecraft.util.Formatting.BOLD));*/
+                    //?}
                 }
             }
         }

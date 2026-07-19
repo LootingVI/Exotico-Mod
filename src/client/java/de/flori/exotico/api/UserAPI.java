@@ -46,6 +46,17 @@ public class UserAPI {
 
     public static String myRank = "USER";
 
+    // sendMessage(Component, boolean) was split into sendSystemMessage/sendOverlayMessage on
+    // Mojmap; every call site in this file passes false (chat, not overlay), so this covers all
+    // of them in one place instead of repeating the branch at each call.
+    private static void sendChat(net.minecraft.text.Text msg) {
+        //? if !mojmap {
+        MinecraftClient.getInstance().player.sendMessage(msg, false);
+        //?} else {
+        /*MinecraftClient.getInstance().player.sendSystemMessage(msg);*/
+        //?}
+    }
+
     public static void init() {
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             if (mc.player == null)
@@ -222,21 +233,20 @@ public class UserAPI {
                     if (mc.player == null)
                         return;
                     if (response.statusCode() == 200) {
-                        mc.player.sendMessage(
-                                net.minecraft.text.Text.literal("§a✔ Cape uploaded! (Rejoin to apply globally)"),
-                                false);
+                        sendChat(
+                                net.minecraft.text.Text.literal("§a✔ Cape uploaded! (Rejoin to apply globally)"));
                     } else {
                         JsonObject err = JsonParser.parseString(response.body()).getAsJsonObject();
                         String msg = err.has("error") ? err.get("error").getAsString() : "Unknown error";
-                        mc.player.sendMessage(
-                                net.minecraft.text.Text.literal("§cCape upload failed: " + msg), false);
+                        sendChat(
+                                net.minecraft.text.Text.literal("§cCape upload failed: " + msg));
                     }
                 });
             } catch (Exception e) {
                 mc.execute(() -> {
                     if (mc.player != null)
-                        mc.player.sendMessage(
-                                net.minecraft.text.Text.literal("§cError uploading cape: " + e.getMessage()), false);
+                        sendChat(
+                                net.minecraft.text.Text.literal("§cError uploading cape: " + e.getMessage()));
                 });
             }
         });
@@ -274,8 +284,8 @@ public class UserAPI {
         if (secret == null || secret.isEmpty()) {
             MinecraftClient.getInstance().execute(() -> {
                 if (MinecraftClient.getInstance().player != null) {
-                    MinecraftClient.getInstance().player.sendMessage(
-                            net.minecraft.text.Text.literal("§cError: No admin secret configured in settings!"), false);
+                    sendChat(
+                            net.minecraft.text.Text.literal("§cError: No admin secret configured in settings!"));
                 }
             });
             return;
@@ -299,18 +309,18 @@ public class UserAPI {
                             return;
                         if (response.statusCode() == 200) {
                             fetchUsers();
-                            MinecraftClient.getInstance().player.sendMessage(
-                                    net.minecraft.text.Text.literal("§aRank updated successfully!"), false);
+                            sendChat(
+                                    net.minecraft.text.Text.literal("§aRank updated successfully!"));
                         } else {
-                            MinecraftClient.getInstance().player.sendMessage(
-                                    net.minecraft.text.Text.literal("§cFailed: " + response.body()), false);
+                            sendChat(
+                                    net.minecraft.text.Text.literal("§cFailed: " + response.body()));
                         }
                     });
                 }).exceptionally(e -> {
                     MinecraftClient.getInstance().execute(() -> {
                         if (MinecraftClient.getInstance().player != null)
-                            MinecraftClient.getInstance().player.sendMessage(
-                                    net.minecraft.text.Text.literal("§cError connecting to API."), false);
+                            sendChat(
+                                    net.minecraft.text.Text.literal("§cError connecting to API."));
                     });
                     return null;
                 });

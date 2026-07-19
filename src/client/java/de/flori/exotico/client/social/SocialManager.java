@@ -53,6 +53,17 @@ public class SocialManager {
     public static List<FriendInfo> friendsList = new ArrayList<>();
     public static String selfRank = "USER";
 
+    // sendMessage(Component, boolean) was split into sendSystemMessage/sendOverlayMessage on
+    // Mojmap; every call site in this file passes false (chat, not overlay), so this covers all
+    // of them in one place instead of repeating the branch at each call.
+    private static void sendChat(net.minecraft.text.Text msg) {
+        //? if !mojmap {
+        MinecraftClient.getInstance().player.sendMessage(msg, false);
+        //?} else {
+        /*MinecraftClient.getInstance().player.sendSystemMessage(msg);*/
+        //?}
+    }
+
     public static void init() {
         connect();
     }
@@ -77,7 +88,7 @@ public class SocialManager {
 
                             @Override
                             public java.util.concurrent.CompletionStage<?> onText(java.net.http.WebSocket ws,
-                                    CharSequence data, boolean last) {
+                                                                                  CharSequence data, boolean last) {
                                 messageBuffer.append(data);
                                 if (last) {
                                     handleMessage(messageBuffer.toString());
@@ -89,7 +100,7 @@ public class SocialManager {
 
                             @Override
                             public java.util.concurrent.CompletionStage<?> onClose(java.net.http.WebSocket ws,
-                                    int statusCode, String reason) {
+                                                                                   int statusCode, String reason) {
                                 System.out.println("[Exotico Social] Disconnected: " + reason);
                                 return null;
                             }
@@ -123,7 +134,11 @@ public class SocialManager {
 
     private static void auth(WebSocket ws) {
         MinecraftClient mc = MinecraftClient.getInstance();
+        //? if !mojmap {
         if (mc.getSession() != null && mc.player != null) {
+            //?} else {
+            /*if (mc.getUser() != null && mc.player != null) {*/
+            //?}
             String uuid = mc.player.getUuidAsString();
             String serverIp = "Unknown";
             if (mc.getNetworkHandler() != null && mc.getNetworkHandler().getServerInfo() != null) {
@@ -152,202 +167,200 @@ public class SocialManager {
             mc.execute(() -> {
                 switch (type) {
                     case "FRIEND_ONLINE": {
-                    if (mc.player != null) {
-                        String fUuid = payload.get("uuid").getAsString();
-                        if (!onlineFriends.contains(fUuid))
-                            onlineFriends.add(fUuid);
+                        if (mc.player != null) {
+                            String fUuid = payload.get("uuid").getAsString();
+                            if (!onlineFriends.contains(fUuid))
+                                onlineFriends.add(fUuid);
 
-                        // Update in friends list
-                        for (FriendInfo fi : friendsList) {
-                            if (fi.uuid.equals(fUuid)) {
-                                fi.online = true;
-                                if (payload.has("publicKey") && !payload.get("publicKey").isJsonNull()) {
-                                    fi.publicKey = payload.get("publicKey").getAsString();
+                            // Update in friends list
+                            for (FriendInfo fi : friendsList) {
+                                if (fi.uuid.equals(fUuid)) {
+                                    fi.online = true;
+                                    if (payload.has("publicKey") && !payload.get("publicKey").isJsonNull()) {
+                                        fi.publicKey = payload.get("publicKey").getAsString();
+                                    }
                                 }
                             }
+
+                            String server = payload.has("server") ? payload.get("server").getAsString() : "Lobby";
+                            String name = payload.has("name") ? payload.get("name").getAsString() : fUuid;
+                            sendChat(
+                                    Text.literal(
+                                            "§a[Exotico Social] §7Your friend §b" + name + " §7just joined §e" + server));
                         }
-
-                        String server = payload.has("server") ? payload.get("server").getAsString() : "Lobby";
-                        String name = payload.has("name") ? payload.get("name").getAsString() : fUuid;
-                        mc.player.sendMessage(
-                                Text.literal(
-                                        "§a[Exotico Social] §7Your friend §b" + name + " §7just joined §e" + server),
-                                false);
+                        break;
                     }
-                    break;
-                }
 
-                case "FRIEND_OFFLINE":
-                    String offUuid = payload.get("uuid").getAsString();
-                    onlineFriends.remove(offUuid);
-                    for (FriendInfo fi : friendsList) {
-                        if (fi.uuid.equals(offUuid))
-                            fi.online = false;
-                    }
-                    break;
-
-                case "FRIEND_LIST":
-                    JsonArray flist = payload.getAsJsonArray();
-                    friendsList.clear();
-                    onlineFriends.clear();
-                    for (var el : flist) {
-                        JsonObject fObj = el.getAsJsonObject();
-                        FriendInfo fi = new FriendInfo();
-                        fi.uuid = fObj.get("uuid").getAsString();
-                        fi.name = fObj.get("name").getAsString();
-                        fi.rank = fObj.get("rank").getAsString();
-                        fi.online = fObj.get("online").getAsBoolean();
-                        if (fObj.has("publicKey") && !fObj.get("publicKey").isJsonNull()) {
-                            fi.publicKey = fObj.get("publicKey").getAsString();
+                    case "FRIEND_OFFLINE":
+                        String offUuid = payload.get("uuid").getAsString();
+                        onlineFriends.remove(offUuid);
+                        for (FriendInfo fi : friendsList) {
+                            if (fi.uuid.equals(offUuid))
+                                fi.online = false;
                         }
-                        friendsList.add(fi);
-                        if (fi.online)
-                            onlineFriends.add(fi.uuid);
-                    }
-                    break;
+                        break;
 
-                case "GLOBAL_CHAT_MSG":
-                    ChatMessage msg = new ChatMessage();
-                    msg.id = payload.get("id").getAsString();
-                    msg.sender = payload.get("sender_name").getAsString();
-                    msg.rank = payload.get("sender_rank").getAsString();
-                    msg.content = payload.get("content").getAsString();
-                    msg.isAdminDeleted = payload.get("deleted").getAsInt() == 1;
-                    msg.isPrivate = false;
-                    globalMessages.add(msg);
-                    if (globalMessages.size() > 100)
-                        globalMessages.remove(0);
-                    break;
-
-                case "GLOBAL_CHAT_HISTORY": {
-                    JsonArray hist = payload.getAsJsonArray();
-                    globalMessages.clear();
-                    for (var el : hist) {
-                        JsonObject o = el.getAsJsonObject();
-                        ChatMessage m = new ChatMessage();
-                        m.id = o.get("id").getAsString();
-                        m.sender = o.get("sender_name").getAsString();
-                        m.rank = o.get("sender_rank").getAsString();
-                        m.content = o.get("content").getAsString();
-                        m.isAdminDeleted = o.has("deleted") && o.get("deleted").getAsInt() == 1;
-                        m.isPrivate = false;
-                        globalMessages.add(m);
-                    }
-                    break;
-                }
-
-                case "AUTH_SUCCESS": {
-                    selfRank = payload.getAsJsonObject().get("rank").getAsString();
-                    System.out.println("[Exotico Social] Authenticated with rank: " + selfRank);
-                    break;
-                }
-
-                case "GLOBAL_CHAT_DELETE": {
-                    String delId = payload.get("id").getAsString();
-                    for (ChatMessage m : globalMessages) {
-                        if (m.id != null && m.id.equals(delId)) {
-                            m.isAdminDeleted = true;
-                            m.content = "[Deleted by Admin]";
+                    case "FRIEND_LIST":
+                        JsonArray flist = payload.getAsJsonArray();
+                        friendsList.clear();
+                        onlineFriends.clear();
+                        for (var el : flist) {
+                            JsonObject fObj = el.getAsJsonObject();
+                            FriendInfo fi = new FriendInfo();
+                            fi.uuid = fObj.get("uuid").getAsString();
+                            fi.name = fObj.get("name").getAsString();
+                            fi.rank = fObj.get("rank").getAsString();
+                            fi.online = fObj.get("online").getAsBoolean();
+                            if (fObj.has("publicKey") && !fObj.get("publicKey").isJsonNull()) {
+                                fi.publicKey = fObj.get("publicKey").getAsString();
+                            }
+                            friendsList.add(fi);
+                            if (fi.online)
+                                onlineFriends.add(fi.uuid);
                         }
-                    }
-                    break;
-                }
+                        break;
 
-                case "FRIEND_REQUEST": {
-                    if (mc.player != null) {
-                        String fromUuid = payload.get("from").getAsString();
-                        String fromName = payload.get("fromName").getAsString();
+                    case "GLOBAL_CHAT_MSG":
+                        ChatMessage msg = new ChatMessage();
+                        msg.id = payload.get("id").getAsString();
+                        msg.sender = payload.get("sender_name").getAsString();
+                        msg.rank = payload.get("sender_rank").getAsString();
+                        msg.content = payload.get("content").getAsString();
+                        msg.isAdminDeleted = payload.get("deleted").getAsInt() == 1;
+                        msg.isPrivate = false;
+                        globalMessages.add(msg);
+                        if (globalMessages.size() > 100)
+                            globalMessages.remove(0);
+                        break;
 
-                        FriendRequest req = new FriendRequest();
-                        req.uuid = fromUuid;
-                        req.name = fromName;
-                        pendingRequests.add(req);
-
-                        mc.player.sendMessage(
-                                Text.literal("§a[Exotico Social] §7You received a friend request from §b" + fromName),
-                                false);
-                    }
-                    break;
-                }
-
-                case "FRIEND_ACCEPTED": {
-                    if (mc.player != null) {
-                        String byUuid = payload.get("by").getAsString();
-                        String byName = payload.has("name") ? payload.get("name").getAsString() : byUuid;
-
-                        FriendInfo fi = new FriendInfo();
-                        fi.uuid = byUuid;
-                        fi.name = byName;
-                        fi.rank = payload.has("rank") ? payload.get("rank").getAsString() : "USER";
-                        fi.online = payload.has("online") && payload.get("online").getAsBoolean();
-                        if (payload.has("publicKey") && !payload.get("publicKey").isJsonNull()) {
-                            fi.publicKey = payload.get("publicKey").getAsString();
+                    case "GLOBAL_CHAT_HISTORY": {
+                        JsonArray hist = payload.getAsJsonArray();
+                        globalMessages.clear();
+                        for (var el : hist) {
+                            JsonObject o = el.getAsJsonObject();
+                            ChatMessage m = new ChatMessage();
+                            m.id = o.get("id").getAsString();
+                            m.sender = o.get("sender_name").getAsString();
+                            m.rank = o.get("sender_rank").getAsString();
+                            m.content = o.get("content").getAsString();
+                            m.isAdminDeleted = o.has("deleted") && o.get("deleted").getAsInt() == 1;
+                            m.isPrivate = false;
+                            globalMessages.add(m);
                         }
-
-                        // Add or Update
-                        friendsList.removeIf(f -> f.uuid.equals(byUuid));
-                        friendsList.add(fi);
-                        if (fi.online && !onlineFriends.contains(byUuid))
-                            onlineFriends.add(byUuid);
-
-                        mc.player.sendMessage(Text.literal("§a[Exotico Social] §7Friend request §eaccepted§7!"), false);
+                        break;
                     }
-                    break;
-                }
 
-                case "PRIVATE_MSG_RECEIVE": {
-                    String sUuid = payload.get("sender").getAsString();
-                    String encRecv = payload.get("content").getAsString();
-                    String decRecv = SocialCrypto.decryptString(encRecv);
-
-                    ChatMessage pmR = new ChatMessage();
-                    pmR.id = payload.get("id").getAsString();
-                    pmR.sender = sUuid;
-                    for (FriendInfo fi : friendsList)
-                        if (fi.uuid.equals(sUuid))
-                            pmR.sender = fi.name;
-                    pmR.content = decRecv;
-                    pmR.timestamp = payload.get("timestamp").getAsLong();
-                    pmR.isPrivate = true;
-
-                    privateMessages.computeIfAbsent(sUuid, k -> new ArrayList<>()).add(pmR);
-                    break;
-                }
-
-                case "PRIVATE_MSG_CONFIRM": {
-                    String receiver = payload.get("receiver").getAsString();
-                    String encSend = payload.get("content").getAsString();
-                    String decSend = SocialCrypto.decryptString(encSend);
-
-                    ChatMessage pmC = new ChatMessage();
-                    pmC.id = payload.get("id").getAsString();
-                    pmC.sender = mc.player != null ? mc.player.getName().getString() : "Me";
-                    pmC.content = decSend;
-                    pmC.timestamp = payload.get("timestamp").getAsLong();
-                    pmC.isPrivate = true;
-
-                    privateMessages.computeIfAbsent(receiver, k -> new ArrayList<>()).add(pmC);
-                    break;
-                }
-
-                case "PRIVATE_MSG_HISTORY": {
-                    String hOther = payload.get("otherUuid").getAsString();
-                    JsonArray mH = payload.getAsJsonArray("messages");
-                    List<ChatMessage> h = new ArrayList<>();
-                    for (var el : mH) {
-                        JsonObject o = el.getAsJsonObject();
-                        ChatMessage cm = new ChatMessage();
-                        cm.id = o.get("id").getAsString();
-                        cm.sender = o.get("sender").getAsString();
-                        String decH = SocialCrypto.decryptString(o.get("content").getAsString());
-                        cm.content = decH;
-                        cm.timestamp = o.get("timestamp").getAsLong();
-                        h.add(cm);
+                    case "AUTH_SUCCESS": {
+                        selfRank = payload.getAsJsonObject().get("rank").getAsString();
+                        System.out.println("[Exotico Social] Authenticated with rank: " + selfRank);
+                        break;
                     }
-                    privateMessages.put(hOther, h);
-                    break;
+
+                    case "GLOBAL_CHAT_DELETE": {
+                        String delId = payload.get("id").getAsString();
+                        for (ChatMessage m : globalMessages) {
+                            if (m.id != null && m.id.equals(delId)) {
+                                m.isAdminDeleted = true;
+                                m.content = "[Deleted by Admin]";
+                            }
+                        }
+                        break;
+                    }
+
+                    case "FRIEND_REQUEST": {
+                        if (mc.player != null) {
+                            String fromUuid = payload.get("from").getAsString();
+                            String fromName = payload.get("fromName").getAsString();
+
+                            FriendRequest req = new FriendRequest();
+                            req.uuid = fromUuid;
+                            req.name = fromName;
+                            pendingRequests.add(req);
+
+                            sendChat(
+                                    Text.literal("§a[Exotico Social] §7You received a friend request from §b" + fromName));
+                        }
+                        break;
+                    }
+
+                    case "FRIEND_ACCEPTED": {
+                        if (mc.player != null) {
+                            String byUuid = payload.get("by").getAsString();
+                            String byName = payload.has("name") ? payload.get("name").getAsString() : byUuid;
+
+                            FriendInfo fi = new FriendInfo();
+                            fi.uuid = byUuid;
+                            fi.name = byName;
+                            fi.rank = payload.has("rank") ? payload.get("rank").getAsString() : "USER";
+                            fi.online = payload.has("online") && payload.get("online").getAsBoolean();
+                            if (payload.has("publicKey") && !payload.get("publicKey").isJsonNull()) {
+                                fi.publicKey = payload.get("publicKey").getAsString();
+                            }
+
+                            // Add or Update
+                            friendsList.removeIf(f -> f.uuid.equals(byUuid));
+                            friendsList.add(fi);
+                            if (fi.online && !onlineFriends.contains(byUuid))
+                                onlineFriends.add(byUuid);
+
+                            sendChat(Text.literal("§a[Exotico Social] §7Friend request §eaccepted§7!"));
+                        }
+                        break;
+                    }
+
+                    case "PRIVATE_MSG_RECEIVE": {
+                        String sUuid = payload.get("sender").getAsString();
+                        String encRecv = payload.get("content").getAsString();
+                        String decRecv = SocialCrypto.decryptString(encRecv);
+
+                        ChatMessage pmR = new ChatMessage();
+                        pmR.id = payload.get("id").getAsString();
+                        pmR.sender = sUuid;
+                        for (FriendInfo fi : friendsList)
+                            if (fi.uuid.equals(sUuid))
+                                pmR.sender = fi.name;
+                        pmR.content = decRecv;
+                        pmR.timestamp = payload.get("timestamp").getAsLong();
+                        pmR.isPrivate = true;
+
+                        privateMessages.computeIfAbsent(sUuid, k -> new ArrayList<>()).add(pmR);
+                        break;
+                    }
+
+                    case "PRIVATE_MSG_CONFIRM": {
+                        String receiver = payload.get("receiver").getAsString();
+                        String encSend = payload.get("content").getAsString();
+                        String decSend = SocialCrypto.decryptString(encSend);
+
+                        ChatMessage pmC = new ChatMessage();
+                        pmC.id = payload.get("id").getAsString();
+                        pmC.sender = mc.player != null ? mc.player.getName().getString() : "Me";
+                        pmC.content = decSend;
+                        pmC.timestamp = payload.get("timestamp").getAsLong();
+                        pmC.isPrivate = true;
+
+                        privateMessages.computeIfAbsent(receiver, k -> new ArrayList<>()).add(pmC);
+                        break;
+                    }
+
+                    case "PRIVATE_MSG_HISTORY": {
+                        String hOther = payload.get("otherUuid").getAsString();
+                        JsonArray mH = payload.getAsJsonArray("messages");
+                        List<ChatMessage> h = new ArrayList<>();
+                        for (var el : mH) {
+                            JsonObject o = el.getAsJsonObject();
+                            ChatMessage cm = new ChatMessage();
+                            cm.id = o.get("id").getAsString();
+                            cm.sender = o.get("sender").getAsString();
+                            String decH = SocialCrypto.decryptString(o.get("content").getAsString());
+                            cm.content = decH;
+                            cm.timestamp = o.get("timestamp").getAsLong();
+                            h.add(cm);
+                        }
+                        privateMessages.put(hOther, h);
+                        break;
+                    }
                 }
-            }
             });
         } catch (Exception e) {
             e.printStackTrace();

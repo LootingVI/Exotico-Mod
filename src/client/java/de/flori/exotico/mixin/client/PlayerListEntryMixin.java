@@ -6,7 +6,11 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import de.flori.exotico.api.UserAPI;
 import de.flori.exotico.client.ExoticoCapeAsset;
+//? if !mojmap {
 import net.minecraft.client.network.PlayerListEntry;
+//?} else {
+/*import net.minecraft.client.multiplayer.PlayerInfo;
+ *///?}
 import net.minecraft.entity.player.SkinTextures;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Final;
@@ -22,7 +26,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collection;
 
+//? if !mojmap {
 @Mixin(PlayerListEntry.class)
+//?} else {
+/*@Mixin(PlayerInfo.class)
+ *///?}
 public class PlayerListEntryMixin {
 
 
